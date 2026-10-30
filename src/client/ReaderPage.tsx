@@ -27,6 +27,9 @@ const ERROR_TEXT: Record<string, string> = {
 
 const SPINES = ['#55766c', '#8d6b56', '#62758e', '#8b744f', '#766583', '#507d7d', '#8a5f66']
 
+/** Book names that make the empty search form immediately usable. */
+const SEARCH_SUGGESTIONS = ['剑来', '光阴之外', '凡人修仙传'] as const
+
 /** Call a generated Remote method and unwrap the result branch. */
 async function invoke<T>(call: (signal: AbortSignal) => Promise<RemoteResult<T>>): Promise<T> {
   const controller = new AbortController()
@@ -433,12 +436,13 @@ export function createReaderPage(ctx: Context): () => ReactNode {
       setActiveEditionUrl(null)
     }
 
-    async function search(): Promise<void> {
-      const query = searchQuery.trim()
+    async function search(queryOverride?: string): Promise<void> {
+      const query = (queryOverride ?? searchQuery).trim()
       if (query === '' || searchBusy) return
       setSearchBusy(true)
       setError(null)
       setSearchDone(false)
+      setSearchResults([])
       try {
         let response: Response | undefined
         let raw = ''
@@ -701,19 +705,17 @@ export function createReaderPage(ctx: Context): () => ReactNode {
         )}
 
         {view === 'search' && (
-          <header className="nr-topbar">
+          <header className="nr-topbar nr-subpage-topbar">
             <button className="nr-icon-button" onClick={() => { setView('shelf'); setError(null) }} title="返回书架" aria-label="返回书架">
               <Icon name="back" />
             </button>
-            <div className="nr-heading">
-              <h1 className="nr-title">搜索</h1>
-              <p className="nr-subtitle">按书名查找</p>
-            </div>
+            <span className="nr-subpage-context">书架</span>
+            <span className="nr-subpage-meta">5 个书库</span>
           </header>
         )}
 
         {view === 'add' && (
-          <header className="nr-topbar">
+          <header className="nr-topbar nr-subpage-topbar">
             <button className="nr-icon-button" disabled={busy} onClick={() => {
               operation.current += 1
               setBusy(false)
@@ -723,10 +725,8 @@ export function createReaderPage(ctx: Context): () => ReactNode {
             }} title="返回书架" aria-label="返回书架">
               <Icon name="back" />
             </button>
-            <div className="nr-heading">
-              <h1 className="nr-title">添加小说</h1>
-              <p className="nr-subtitle">从书籍、目录或章节页开始</p>
-            </div>
+            <span className="nr-subpage-context">书架</span>
+            <span className="nr-subpage-meta">支持 5 个站点</span>
           </header>
         )}
 
@@ -797,149 +797,187 @@ export function createReaderPage(ctx: Context): () => ReactNode {
         )}
 
         {view === 'add' && (
-          <div className="nr-add-body nr-scroll">
-            <form onSubmit={(event) => { event.preventDefault(); void parse() }}>
-              <label className="nr-field-label" htmlFor="dsh-relax-reader-url">小说页面地址</label>
-              <div className="nr-url-row">
-                <input
-                  id="dsh-relax-reader-url"
-                  className="nr-input"
-                  type="text"
-                  inputMode="url"
-                  value={url}
-                  onChange={event => setUrl(event.target.value)}
-                  placeholder="https://example.com/book/123"
-                  spellCheck={false}
-                  autoComplete="url"
-                  autoFocus
-                />
-                <button className="nr-primary" type="submit" disabled={busy || url.trim() === ''}>
-                  {busy ? <><span className="nr-spinner" /> 解析中</> : '解析'}
-                </button>
-              </div>
-            </form>
-            <p className="nr-form-hint">支持静态小说站；笔趣阁的详情页、目录页、章节页都可以。</p>
+          <div className="nr-page nr-scroll">
+            <div className="nr-page-inner">
+              <header className="nr-page-intro">
+                <h1 className="nr-page-title">从一页地址开始</h1>
+                <p className="nr-page-deck">粘贴书籍详情页、目录页或章节页。解析出书名和目录后，再决定是否收藏。</p>
+              </header>
 
-            {preview !== null && (
-              <section className="nr-preview" aria-label="解析预览">
-                <div className="nr-preview-head">
-                  <Cover title={preview.title} url={preview.coverUrl} eager />
-                  <div className="nr-preview-meta">
-                    <span className="nr-preview-title">{preview.title}</span>
-                    <span className="nr-preview-author">{preview.author} · {preview.sourceHost}</span>
-                    <span className={`nr-confidence${preview.confidence === 'low' ? ' low' : ''}`}>
-                      {previewConfidence} · {preview.chapterCount} 章
-                    </span>
+              <section className="nr-workbench" aria-label="解析小说地址">
+                <form onSubmit={(event) => { event.preventDefault(); void parse() }}>
+                  <div className="nr-search-field">
+                    <Icon name="book" />
+                    <input
+                      id="dsh-relax-reader-url"
+                      className="nr-field-input"
+                      type="text"
+                      inputMode="url"
+                      value={url}
+                      onChange={event => setUrl(event.target.value)}
+                      placeholder="https://example.com/book/123"
+                      spellCheck={false}
+                      autoComplete="url"
+                      autoFocus
+                    />
+                    <button className="nr-primary" type="submit" disabled={busy || url.trim() === ''}>
+                      {busy ? <><span className="nr-spinner" /> 解析中</> : '解析'}
+                    </button>
                   </div>
-                </div>
-                {preview.description !== undefined && preview.description !== '' && (
-                  <p className="nr-description">{readableDescription(preview.description)}</p>
-                )}
-                {preview.sample !== '' && (
-                  <blockquote className="nr-sample">{preview.sample}</blockquote>
-                )}
-                <div className="nr-preview-actions">
-                  <button className="nr-primary" onClick={() => { void save() }} disabled={busy}>
-                    {busy ? <><span className="nr-spinner" /> 收藏中</> : '收藏到书架'}
-                  </button>
-                </div>
-                {preview.confidence === 'low' && (
-                  <p className="nr-note">解析结果可能不完整。仍可收藏，打开后到目录里确认。</p>
-                )}
+                </form>
+                <p className="nr-workbench-note">支持笔趣阁、蚂蚁阅读、就爱文学、若雨中文、唐三中文；详情页、目录页、章节页都可以。</p>
               </section>
-            )}
 
-            {(editionsBusy || editions.length > 0) && (
-              <section className="nr-editions" aria-label="各来源更新">
-                <div className="nr-editions-head">
-                  <h2>来源与更新</h2>
-                  <span>{editionsBusy ? '正在核对目录…' : `${editions.length} 个来源`}</span>
-                </div>
-                {editionsBusy && (
-                  <div className="nr-editions-loading"><span className="nr-spinner" /> 正在读取各来源的最新章节…</div>
-                )}
-                {editions.length > 0 && (
-                  <ul className="nr-edition-list">
-                    {editions.map(edition => (
-                      <li key={`${edition.sourceName}-${edition.url}`} className={`nr-edition${activeEditionUrl === edition.url ? ' active' : ''}`}>
-                        <div className="nr-edition-main">
-                          <span className="nr-edition-source">{edition.sourceName}</span>
-                          <span className={`nr-edition-update${edition.error === undefined ? '' : ' error'}`}>
-                            {edition.error ?? (edition.latestChapter === undefined ? '目录不可用' : `更新至 ${edition.latestChapter}`)}
-                          </span>
-                        </div>
-                        <div className="nr-edition-side">
-                          {edition.chapterCount !== undefined && <span className="nr-edition-count">{edition.chapterCount} 章</span>}
-                          {edition.error === undefined && activeEditionUrl !== edition.url && (
-                            <button className="nr-edition-use" onClick={() => { setActiveEditionUrl(edition.url); void parse(edition.url) }}>
-                              使用
-                            </button>
-                          )}
-                          {activeEditionUrl === edition.url && <span className="nr-edition-current">当前</span>}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-            )}
+              {preview !== null && (
+                <section className="nr-preview" aria-label="解析预览">
+                  <div className="nr-preview-head">
+                    <Cover title={preview.title} url={preview.coverUrl} eager />
+                    <div className="nr-preview-meta">
+                      <span className="nr-preview-title">{preview.title}</span>
+                      <span className="nr-preview-author">{preview.author} · {preview.sourceHost}</span>
+                      <span className={`nr-confidence${preview.confidence === 'low' ? ' low' : ''}`}>
+                        {previewConfidence} · {preview.chapterCount} 章
+                      </span>
+                    </div>
+                  </div>
+                  {preview.description !== undefined && preview.description !== '' && (
+                    <p className="nr-description">{readableDescription(preview.description)}</p>
+                  )}
+                  {preview.sample !== '' && (
+                    <blockquote className="nr-sample">{preview.sample}</blockquote>
+                  )}
+                  <div className="nr-preview-actions">
+                    <button className="nr-primary" onClick={() => { void save() }} disabled={busy}>
+                      {busy ? <><span className="nr-spinner" /> 收藏中</> : '收藏到书架'}
+                    </button>
+                  </div>
+                  {preview.confidence === 'low' && (
+                    <p className="nr-note">解析结果可能不完整。仍可收藏，打开后到目录里确认。</p>
+                  )}
+                </section>
+              )}
+
+              {(editionsBusy || editions.length > 0) && (
+                <section className="nr-editions" aria-label="各来源更新">
+                  <div className="nr-editions-head">
+                    <h2>来源与更新</h2>
+                    <span>{editionsBusy ? '正在核对目录…' : `${editions.length} 个来源`}</span>
+                  </div>
+                  {editionsBusy && (
+                    <div className="nr-editions-loading"><span className="nr-spinner" /> 正在读取各来源的最新章节…</div>
+                  )}
+                  {editions.length > 0 && (
+                    <ul className="nr-edition-list">
+                      {editions.map(edition => (
+                        <li key={`${edition.sourceName}-${edition.url}`} className={`nr-edition${activeEditionUrl === edition.url ? ' active' : ''}`}>
+                          <div className="nr-edition-main">
+                            <span className="nr-edition-source">{edition.sourceName}</span>
+                            <span className={`nr-edition-update${edition.error === undefined ? '' : ' error'}`}>
+                              {edition.error ?? (edition.latestChapter === undefined ? '目录不可用' : `更新至 ${edition.latestChapter}`)}
+                            </span>
+                          </div>
+                          <div className="nr-edition-side">
+                            {edition.chapterCount !== undefined && <span className="nr-edition-count">{edition.chapterCount} 章</span>}
+                            {edition.error === undefined && activeEditionUrl !== edition.url && (
+                              <button className="nr-edition-use" onClick={() => { setActiveEditionUrl(edition.url); void parse(edition.url) }}>
+                                使用
+                              </button>
+                            )}
+                            {activeEditionUrl === edition.url && <span className="nr-edition-current">当前</span>}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              )}
+            </div>
           </div>
         )}
 
         {view === 'search' && (
-          <div className="nr-add-body nr-scroll">
-            <form onSubmit={(event) => { event.preventDefault(); void search() }}>
-              <label className="nr-field-label" htmlFor="dsh-relax-reader-search">书名</label>
-              <div className="nr-url-row">
-                <input
-                  id="dsh-relax-reader-search"
-                  className="nr-input"
-                  type="search"
-                  value={searchQuery}
-                  onChange={event => { setSearchQuery(event.target.value); if (searchDone) { setSearchDone(false); setSearchResults([]) } }}
-                  placeholder="输入书名，例如：剑来"
-                  spellCheck={false}
-                  autoFocus
-                />
-                <button className="nr-primary" type="submit" disabled={searchBusy || searchQuery.trim() === ''}>
-                  {searchBusy ? <><span className="nr-spinner" /> 搜索中</> : '搜索'}
-                </button>
-              </div>
-            </form>
-            <p className="nr-form-hint">按书名聚合多个书源；同一本书会合并来源，点结果先看解析预览。</p>
+          <div className="nr-page nr-scroll">
+            <div className="nr-page-inner">
+              <header className="nr-page-intro">
+                <h1 className="nr-page-title">找一本书</h1>
+                <p className="nr-page-deck">五个书库同时搜索。同一本书的不同来源会合并，先看目录，再决定收藏。</p>
+              </header>
 
-            {searchBusy && (
-              <div className="nr-search-status"><span className="nr-spinner" /> 正在书库里找…</div>
-            )}
-            {!searchBusy && searchDone && searchResults.length === 0 && (
-              <div className="nr-search-empty">
-                <strong>没有找到“{searchQuery.trim()}”</strong>
-                <span>换个书名，或者直接粘贴书籍地址。</span>
-              </div>
-            )}
-            {searchResults.length > 0 && (
-              <section className="nr-search-section" aria-label="搜索结果">
-                <p className="nr-search-count">找到 {searchResults.length} 本</p>
-                <div className="nr-search-results">
-                  {searchResults.map(result => (
-                    <button key={result.id} className="nr-search-card" onClick={() => openSearchResult(result)} disabled={busy || searchBusy}>
-                      <Cover title={result.title} url={result.coverUrl} eager />
-                      <span className="nr-search-copy">
-                        <span className="nr-search-title">{result.title}</span>
-                        <span className="nr-search-meta">
-                          <span className="nr-search-author">{result.author}</span>
-                          {result.sourceName !== undefined && result.sourceName !== '' && (
-                            <span className="nr-search-source">{result.sourceName}</span>
-                          )}
-                        </span>
-                        {result.intro !== '' && <span className="nr-search-intro">{readableDescription(result.intro)}</span>}
-                      </span>
-                      <span className="nr-search-go"><Icon name="right" /></span>
+              <section className="nr-workbench" aria-label="搜索书库">
+                <form onSubmit={(event) => { event.preventDefault(); void search() }}>
+                  <div className="nr-search-field">
+                    <Icon name="search" />
+                    <input
+                      id="dsh-relax-reader-search"
+                      className="nr-field-input"
+                      type="search"
+                      value={searchQuery}
+                      onChange={event => { setSearchQuery(event.target.value); if (searchDone) { setSearchDone(false); setSearchResults([]) } }}
+                      placeholder="输入书名，例如：剑来"
+                      spellCheck={false}
+                      autoFocus
+                    />
+                    <button className="nr-primary" type="submit" disabled={searchBusy || searchQuery.trim() === ''}>
+                      {searchBusy ? <><span className="nr-spinner" /> 搜索中</> : '搜索'}
+                    </button>
+                  </div>
+                </form>
+                <div className="nr-suggestions">
+                  <span>试试</span>
+                  {SEARCH_SUGGESTIONS.map(name => (
+                    <button
+                      key={name}
+                      type="button"
+                      className="nr-suggestion"
+                      disabled={searchBusy}
+                      onClick={() => { setSearchQuery(name); void search(name) }}
+                    >
+                      {name}
                     </button>
                   ))}
                 </div>
               </section>
-            )}
+
+              {searchBusy && (
+                <div className="nr-search-status"><span className="nr-spinner" /> 正在五个书库里查找…</div>
+              )}
+              {!searchBusy && searchDone && searchResults.length === 0 && (
+                <div className="nr-search-empty">
+                  <strong>没有找到“{searchQuery.trim()}”</strong>
+                  <span>换个书名，或者直接粘贴书籍地址。</span>
+                  <button
+                    type="button"
+                    className="nr-secondary"
+                    onClick={() => { setSearchQuery(''); setSearchDone(false); setSearchResults([]) }}
+                  >
+                    换个书名
+                  </button>
+                </div>
+              )}
+              {searchResults.length > 0 && (
+                <section className="nr-search-section" aria-label="搜索结果">
+                  <p className="nr-search-count">找到 {searchResults.length} 本</p>
+                  <div className="nr-search-results">
+                    {searchResults.map(result => (
+                      <button key={result.id} className="nr-search-card" onClick={() => openSearchResult(result)} disabled={busy || searchBusy}>
+                        <Cover title={result.title} url={result.coverUrl} eager />
+                        <span className="nr-search-copy">
+                          <span className="nr-search-title">{result.title}</span>
+                          <span className="nr-search-meta">
+                            <span className="nr-search-author">{result.author}</span>
+                            {result.sourceName !== undefined && result.sourceName !== '' && (
+                              <span className="nr-search-source">{result.sourceName}</span>
+                            )}
+                          </span>
+                          {result.intro !== '' && <span className="nr-search-intro">{readableDescription(result.intro)}</span>}
+                        </span>
+                        <span className="nr-search-go"><Icon name="right" /></span>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
           </div>
         )}
 
