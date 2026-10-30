@@ -10,13 +10,14 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { FetchError } from './errors.ts'
-import type { Book, ChapterContent, ChapterRef } from './types.ts'
+import type { Book, ChapterContent, ChapterRef, ReaderSettings } from './types.ts'
 
 interface StoreData {
   version: 1
   books: Book[]
   toc: Record<string, ChapterRef[]>
   chapters: Record<string, Record<string, ChapterContent>>
+  settings?: ReaderSettings | undefined
 }
 
 /** Resolve DSH's per-user data root. */
@@ -26,7 +27,17 @@ export function resolveDataRoot(env: NodeJS.ProcessEnv = process.env, home: stri
 }
 
 function emptyData(): StoreData {
-  return { version: 1, books: [], toc: {}, chapters: {} }
+  return { version: 1, books: [], toc: {}, chapters: {}, settings: { disabledSources: [] } }
+}
+
+/** Keep only stable source ids from a hand-edited settings block. */
+function sanitizeSettings(value: unknown): ReaderSettings {
+  if (typeof value !== 'object' || value === null) return { disabledSources: [] }
+  const disabled = (value as { disabledSources?: unknown }).disabledSources
+  if (!Array.isArray(disabled)) return { disabledSources: [] }
+  return {
+    disabledSources: [...new Set(disabled.filter((id): id is string => typeof id === 'string' && id.trim() !== ''))],
+  }
 }
 
 /** Validate a full snapshot before it reaches memory or disk. */
@@ -41,6 +52,7 @@ function parseStore(raw: string): StoreData {
     books: sanitizeBooks(record.books),
     toc: sanitizeToc(record.toc),
     chapters: sanitizeChapters(record.chapters),
+    settings: sanitizeSettings(record.settings),
   }
 }
 
@@ -185,6 +197,19 @@ export class ReaderStore {
     const next = this.writeChain.then(write, write)
     this.writeChain = next.catch(() => {})
     return next
+  }
+
+  /** Persisted search-source preferences. */
+  async getSettings(): Promise<ReaderSettings> {
+    const data = await this.load()
+    return clone(data.settings ?? { disabledSources: [] })
+  }
+
+  /** Replace search-source preferences in the same durable snapshot. */
+  async saveSettings(settings: ReaderSettings): Promise<void> {
+    const data = await this.load()
+    data.settings = sanitizeSettings(settings)
+    await this.persist()
   }
 
   /** All books, most recently updated first. */

@@ -3,6 +3,7 @@
 /** Same-origin route that searches the supported novel site. */
 export const SEARCH_PATH = '/api/dsh-relax-reader/search'
 export const EDITIONS_PATH = '/api/dsh-relax-reader/editions'
+export const SETTINGS_PATH = '/api/dsh-relax-reader/settings'
 export interface Book {
   id: string
   title: string
@@ -110,3 +111,31 @@ export interface SourceEdition {
 export interface EditionsResponse {
   editions: SourceEdition[]
 }
+
+
+/** One book source exposed by the settings page. */
+export interface SourceOption {
+  id: string
+  name: string
+  detail: string
+}
+
+/** Source preferences persisted by the Host. */
+export interface ReaderSettings {
+  disabledSources: string[]
+}
+
+/** Settings route response. */
+export interface SettingsResponse {
+  sources: (SourceOption & { enabled: boolean })[]
+  disabledSources: string[]
+}
+
+/** The fixed source catalog shown in settings and used to validate writes. */
+export const SOURCE_CATALOG: readonly SourceOption[] = [
+  { id: 'bqg', name: '笔趣阁', detail: '主书库 · 目录与正文' },
+  { id: 'mayitxt', name: '蚂蚁阅读', detail: '静态书库 · 搜索与完整目录' },
+  { id: 'jiuai', name: '就爱文学', detail: '静态书库 · 搜索与完整目录' },
+  { id: 'ruoyu', name: '若雨中文', detail: '静态书库 · 搜索与完整目录' },
+  { id: 'tangsan', name: '唐三中文', detail: '静态书库 · 搜索与完整目录' },
+] as const

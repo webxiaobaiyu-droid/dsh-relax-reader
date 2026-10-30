@@ -1874,6 +1874,162 @@ export const styles = String.raw`
   line-height: 1.55;
 }
 
+.nr-page-settings .nr-page-inner {
+  max-width: 880px;
+}
+
+.nr-settings-page {
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.nr-settings-intro {
+  padding: 8px 0 22px;
+}
+
+.nr-settings-title {
+  margin: 0;
+  font-family: var(--nr-serif);
+  font-size: 30px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.nr-settings-deck {
+  max-width: 620px;
+  margin: 9px 0 0;
+  color: var(--nr-soft);
+  font-size: 12.5px;
+  line-height: 1.75;
+}
+
+.nr-settings-card {
+  margin-top: 20px;
+  padding: 0 20px 6px;
+  border: 1px solid var(--nr-line);
+  border-radius: 14px;
+  background: var(--nr-raised);
+}
+
+.nr-settings-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 0 12px;
+  border-bottom: 1px solid var(--nr-line);
+}
+
+.nr-settings-card-head h2 {
+  margin: 0;
+  font-family: var(--nr-serif);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.nr-settings-card-head span {
+  color: var(--nr-faint);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.nr-settings-source-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nr-settings-source {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--nr-line);
+}
+
+.nr-settings-source:last-child {
+  border-bottom: 0;
+}
+
+.nr-settings-source-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.nr-settings-source-copy strong {
+  color: var(--nr-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.nr-settings-source-copy span {
+  color: var(--nr-faint);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.nr-switch {
+  appearance: none;
+  flex: none;
+  width: 42px;
+  height: 24px;
+  padding: 2px;
+  border: 1px solid var(--nr-line-strong);
+  border-radius: 12px;
+  background: var(--nr-surface);
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.nr-switch-thumb {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--nr-faint);
+  transition: transform 140ms ease, background-color 140ms ease;
+}
+
+.nr-switch.on {
+  border-color: var(--nr-accent);
+  background: var(--nr-accent);
+}
+
+.nr-switch.on .nr-switch-thumb {
+  background: var(--nr-accent-ink);
+  transform: translateX(18px);
+}
+
+.nr-switch:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.nr-settings-note {
+  margin: 14px 0 8px;
+  color: var(--nr-faint);
+  font-size: 11.5px;
+  line-height: 1.65;
+}
+
+.nr-settings-error {
+  margin: 14px 0 8px;
+  color: var(--nr-danger);
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
+.nr-source-empty {
+  color: var(--nr-faint);
+  font-size: 12px;
+}
+
 .nr-reader {
   flex: 1;
   min-height: 0;
@@ -2694,6 +2850,10 @@ export const styles = String.raw`
     font-size: 36px;
   }
 
+  .nr-settings-title {
+    font-size: 34px;
+  }
+
   .nr-landing-deck {
     font-size: 13.5px;
   }
@@ -2923,6 +3083,14 @@ export const styles = String.raw`
 }
 
 @container (max-width: 680px) {
+  .nr-settings-title {
+    font-size: 26px;
+  }
+
+  .nr-settings-card {
+    padding: 0 16px 4px;
+  }
+
   .nr-page-idle .nr-page-inner {
     display: block;
     min-height: 0;

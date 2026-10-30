@@ -626,8 +626,11 @@ export async function searchSource(
 export async function searchAllSources(
   query: string,
   signal: AbortSignal,
+  disabled: ReadonlySet<string> = new Set(),
 ): Promise<SourceSearchHit[]> {
-  const settled = await Promise.allSettled(SOURCES.map(async (source) => {
+  const active = SOURCES.filter(source => !disabled.has(source.id))
+  if (active.length === 0) return []
+  const settled = await Promise.allSettled(active.map(async (source) => {
     const budget = AbortSignal.any([signal, AbortSignal.timeout(8_000)])
     return await searchSource(source, query, budget)
   }))

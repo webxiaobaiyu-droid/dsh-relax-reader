@@ -37,7 +37,7 @@ import {
 } from './sources.ts'
 import { rankResults } from './search.ts'
 import { ReaderStore } from './store.ts'
-import { EDITIONS_PATH, SEARCH_PATH } from './types.ts'
+import { EDITIONS_PATH, SEARCH_PATH, SETTINGS_PATH, SOURCE_CATALOG } from './types.ts'
 import type {
   Book,
   BookIdRequest,
@@ -48,8 +48,10 @@ import type {
   ParseUrlRequest,
   ProgressRequest,
   SaveBookRequest,
+  ReaderSettings,
   SearchResult,
   SearchResponse,
+  SettingsResponse,
   SourceEdition,
 } from './types.ts'
 
@@ -268,6 +270,15 @@ async function parseSourcePreview(
   return preview
 }
 
+/** Shape the stored source preferences for the settings page. */
+function settingsResponse(settings: ReaderSettings): SettingsResponse {
+  const disabled = new Set(settings.disabledSources)
+  return {
+    disabledSources: [...disabled],
+    sources: SOURCE_CATALOG.map(source => ({ ...source, enabled: !disabled.has(source.id) })),
+  }
+}
+
 /** Bookshelf and parser service exposed to the browser as `relaxReader`. */
 export default class RelaxReaderService extends TypertRemoteService {
   static inject = ['typert', 'connection']
@@ -287,9 +298,11 @@ export default class RelaxReaderService extends TypertRemoteService {
           if (query === '') return jsonResponse({ query, results: [] } satisfies SearchResponse)
           if (query.length > 80) return jsonResponse({ error: '搜索词太长了' }, 400)
           try {
+            const settings = await this.store.getSettings()
+            const disabled = new Set(settings.disabledSources)
             const [bqg, extra] = await Promise.allSettled([
-              bqgSearch(query, request.signal),
-              searchAllSources(query, request.signal),
+              disabled.has('bqg') ? Promise.resolve([]) : bqgSearch(query, request.signal),
+              searchAllSources(query, request.signal, disabled),
             ])
             if (request.signal.aborted) return jsonResponse({ error: '搜索已取消' }, 499)
             const results: SearchResult[] = []
@@ -326,6 +339,40 @@ export default class RelaxReaderService extends TypertRemoteService {
           }
         },
       }), 'dsh-relax-reader: site search route')
+
+      ctx.effect(() => connection.fetch.register({
+        path: SETTINGS_PATH,
+        methods: ['GET', 'POST'],
+        requestBody: 'buffered',
+        fetch: async (request) => {
+          try {
+            if (request.method === 'GET') {
+              return jsonResponse(settingsResponse(await this.store.getSettings()))
+            }
+            let body: unknown
+            try {
+              body = await request.json()
+            } catch {
+              return jsonResponse({ error: '请求格式不正确' }, 400)
+            }
+            const raw = typeof body === 'object' && body !== null
+              ? (body as { disabledSources?: unknown }).disabledSources
+              : undefined
+            if (raw !== undefined && !Array.isArray(raw)) {
+              return jsonResponse({ error: 'disabledSources 必须是字符串数组' }, 400)
+            }
+            const known = new Set(SOURCE_CATALOG.map(source => source.id))
+            const disabledSources = Array.isArray(raw)
+              ? [...new Set(raw.filter((id): id is string => typeof id === 'string' && known.has(id)))]
+              : []
+            const settings: ReaderSettings = { disabledSources }
+            await this.store.saveSettings(settings)
+            return jsonResponse(settingsResponse(settings))
+          } catch (error: unknown) {
+            return jsonResponse({ error: error instanceof Error ? error.message : '保存设置失败' }, 500)
+          }
+        },
+      }), 'dsh-relax-reader: source settings route')
 
       ctx.effect(() => connection.fetch.register({
         path: EDITIONS_PATH,

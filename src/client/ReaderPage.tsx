@@ -5,11 +5,11 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from 'dsh-relax-reader/remote'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
-import type { Book, ChapterContent, ChapterRef, EditionsResponse, ParsePreview, SearchResponse, SearchResult, SourceEdition } from '../types.ts'
-import { EDITIONS_PATH, SEARCH_PATH } from '../types.ts'
+import type { Book, ChapterContent, ChapterRef, EditionsResponse, ParsePreview, SearchResponse, SearchResult, SettingsResponse, SourceEdition } from '../types.ts'
+import { EDITIONS_PATH, SEARCH_PATH, SETTINGS_PATH, SOURCE_CATALOG } from '../types.ts'
 import { STYLE_ID, styles } from './styles.ts'
 
-type View = 'shelf' | 'add' | 'search' | 'reader'
+type View = 'shelf' | 'add' | 'search' | 'reader' | 'settings'
 type Theme = 'auto' | 'light' | 'sepia' | 'dark'
 type LineHeight = 1.75 | 1.9 | 2.05
 
@@ -30,8 +30,6 @@ const SPINES = ['#55766c', '#8d6b56', '#62758e', '#8b744f', '#766583', '#507d7d'
 /** Book names that make the empty search form immediately usable. */
 const SEARCH_SUGGESTIONS = ['剑来', '光阴之外', '凡人修仙传'] as const
 
-/** Libraries shown in the search landing panel. */
-const SEARCH_SOURCES = ['笔趣阁', '蚂蚁阅读', '就爱文学', '若雨中文', '唐三中文'] as const
 
 /** Call a generated Remote method and unwrap the result branch. */
 async function invoke<T>(call: (signal: AbortSignal) => Promise<RemoteResult<T>>): Promise<T> {
@@ -272,6 +270,11 @@ export function createReaderPage(ctx: Context): () => ReactNode {
     const [failedChapterId, setFailedChapterId] = useState<string | null>(null)
     const [showToc, setShowToc] = useState(false)
     const [settingsOpen, setSettingsOpen] = useState(false)
+    const [settingsData, setSettingsData] = useState<SettingsResponse | null>(null)
+    const [settingsBusy, setSettingsBusy] = useState(false)
+    const [settingsError, setSettingsError] = useState<string | null>(null)
+    const sourceSettings = settingsData?.sources ?? SOURCE_CATALOG.map(source => ({ ...source, enabled: true }))
+    const enabledSourceNames = sourceSettings.filter(source => source.enabled).map(source => source.name)
     const [tocSearch, setTocSearch] = useState('')
     const [pendingDelete, setPendingDelete] = useState<string | null>(null)
     const [justAdded, setJustAdded] = useState<string | null>(null)
@@ -298,6 +301,7 @@ export function createReaderPage(ctx: Context): () => ReactNode {
     }, [remote])
 
     useEffect(() => { void refresh() }, [refresh])
+    useEffect(() => { void loadSettings() }, [])
     useEffect(() => { store('dsh-relax-reader.fontSize', String(fontSize)) }, [fontSize])
     useEffect(() => { store('dsh-relax-reader.theme', theme) }, [theme])
     useEffect(() => { store('dsh-relax-reader.lineHeight', String(lineHeight)) }, [lineHeight])
@@ -425,6 +429,55 @@ export function createReaderPage(ctx: Context): () => ReactNode {
       } finally {
         setEditionsBusy(false)
       }
+    }
+
+    async function loadSettings(): Promise<void> {
+      try {
+        const response = await fetch(SETTINGS_PATH, { headers: { accept: 'application/json' }, cache: 'no-store' })
+        const body = await response.json() as SettingsResponse & { error?: unknown }
+        if (!response.ok) throw new Error(typeof body.error === 'string' ? body.error : '读取设置失败')
+        setSettingsData(body)
+        setSettingsError(null)
+      } catch (cause: unknown) {
+        setSettingsError(cause instanceof Error ? cause.message : '读取设置失败')
+      }
+    }
+
+    async function toggleSource(id: string, enabled: boolean): Promise<void> {
+      if (settingsData === null || settingsBusy) return
+      const previous = settingsData
+      const disabledSources = enabled
+        ? settingsData.disabledSources.filter(item => item !== id)
+        : [...settingsData.disabledSources, id]
+      setSettingsData({
+        ...settingsData,
+        disabledSources,
+        sources: settingsData.sources.map(source => source.id === id ? { ...source, enabled } : source),
+      })
+      setSettingsBusy(true)
+      setSettingsError(null)
+      try {
+        const response = await fetch(SETTINGS_PATH, {
+          method: 'POST',
+          headers: { accept: 'application/json', 'content-type': 'application/json' },
+          body: JSON.stringify({ disabledSources }),
+        })
+        const body = await response.json() as SettingsResponse & { error?: unknown }
+        if (!response.ok) throw new Error(typeof body.error === 'string' ? body.error : '保存设置失败')
+        setSettingsData(body)
+      } catch (cause: unknown) {
+        setSettingsData(previous)
+        setSettingsError(cause instanceof Error ? cause.message : '保存设置失败')
+      } finally {
+        setSettingsBusy(false)
+      }
+    }
+
+    function openSettings(): void {
+      setSettingsOpen(false)
+      setView('settings')
+      setError(null)
+      void loadSettings()
     }
 
     function openSearch(): void {
@@ -696,10 +749,9 @@ export function createReaderPage(ctx: Context): () => ReactNode {
               </button>
               <button
                 className="nr-icon-button"
-                onClick={() => setSettingsOpen(value => !value)}
-                title="阅读设置"
-                aria-label="阅读设置"
-                aria-pressed={settingsOpen}
+                onClick={openSettings}
+                title="设置"
+                aria-label="设置"
               >
                 <Icon name="settings" />
               </button>
@@ -714,7 +766,7 @@ export function createReaderPage(ctx: Context): () => ReactNode {
             </button>
             <div className="nr-searchbar-heading">
               <h1 className="nr-searchbar-title">书库搜索</h1>
-              <span className="nr-searchbar-sub">5 个书库</span>
+              <span className="nr-searchbar-sub">{enabledSourceNames.length} 个书库</span>
             </div>
             <form className="nr-topbar-search" onSubmit={(event) => { event.preventDefault(); void search() }}>
               <Icon name="search" />
@@ -768,6 +820,18 @@ export function createReaderPage(ctx: Context): () => ReactNode {
                 {busy ? <><span className="nr-spinner" /> 解析中</> : '解析'}
               </button>
             </form>
+          </header>
+        )}
+
+        {view === 'settings' && (
+          <header className="nr-topbar nr-searchbar">
+            <button className="nr-icon-button" onClick={() => { setView('shelf'); setSettingsError(null) }} title="返回书架" aria-label="返回书架">
+              <Icon name="back" />
+            </button>
+            <div className="nr-searchbar-heading">
+              <h1 className="nr-searchbar-title">设置</h1>
+              <span className="nr-searchbar-sub">书源管理</span>
+            </div>
           </header>
         )}
 
@@ -834,6 +898,57 @@ export function createReaderPage(ctx: Context): () => ReactNode {
                     ))}
                   </ul>
                 )}
+          </div>
+        )}
+
+        {view === 'settings' && (
+          <div className="nr-page nr-page-settings nr-scroll">
+            <div className="nr-page-inner">
+              <div className="nr-settings-page">
+                <header className="nr-settings-intro">
+                  <h1 className="nr-settings-title">书源与设置</h1>
+                  <p className="nr-settings-deck">选择参与聚合搜索的书源。关闭的书源不会出现在搜索结果里，已经收藏的书仍可正常阅读。</p>
+                </header>
+
+                <section className="nr-settings-card" aria-label="书源设置">
+                  <div className="nr-settings-card-head">
+                    <h2>书源</h2>
+                    <span>{sourceSettings.filter(source => source.enabled).length} / {sourceSettings.length} 已启用</span>
+                  </div>
+                  <ul className="nr-settings-source-list">
+                    {sourceSettings.map(source => (
+                      <li key={source.id} className="nr-settings-source">
+                        <div className="nr-settings-source-copy">
+                          <strong>{source.name}</strong>
+                          <span>{source.detail}</span>
+                        </div>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={source.enabled}
+                          aria-label={`${source.name}书源`}
+                          className={`nr-switch${source.enabled ? ' on' : ''}`}
+                          disabled={settingsBusy || settingsData === null}
+                          onClick={() => { void toggleSource(source.id, !source.enabled) }}
+                        >
+                          <span className="nr-switch-thumb" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  {settingsData === null && settingsError === null && <p className="nr-settings-note">正在读取书源设置…</p>}
+                  {settingsError !== null && <p className="nr-settings-error" role="alert">{settingsError}</p>}
+                </section>
+
+                <section className="nr-settings-card" aria-label="阅读设置说明">
+                  <div className="nr-settings-card-head">
+                    <h2>阅读</h2>
+                    <span>阅读页右上角</span>
+                  </div>
+                  <p className="nr-settings-note">字号、行距和主题在阅读页右上角的「阅读设置」里调整。这里只管理聚合搜索使用的书源。</p>
+                </section>
+              </div>
+            </div>
           </div>
         )}
 
@@ -948,8 +1063,10 @@ export function createReaderPage(ctx: Context): () => ReactNode {
                 <section className="nr-search-landing" aria-label="书库搜索说明">
                   <div className="nr-search-main">
                     <div className="nr-search-main-top">
-                      <h2 className="nr-landing-title">五个书库，一起找</h2>
-                      <p className="nr-landing-deck">按书名同时搜索五个书库。同一本书的不同来源会合并成一条结果，先看目录，再决定收藏。</p>
+                      <h2 className="nr-landing-title">
+                        {enabledSourceNames.length === 0 ? '没有启用的书库' : `${enabledSourceNames.length} 个书库，一起找`}
+                      </h2>
+                      <p className="nr-landing-deck">按书名同时搜索已启用的书库。同一本书的不同来源会合并成一条结果，先看目录，再决定收藏。</p>
                       <div className="nr-suggestions">
                         <span>试试</span>
                         {SEARCH_SUGGESTIONS.map(name => (
@@ -997,12 +1114,14 @@ export function createReaderPage(ctx: Context): () => ReactNode {
                   <aside className="nr-catalog">
                     <div className="nr-catalog-head">
                       <span>已接入</span>
-                      <span>5 个书库</span>
+                      <span>{enabledSourceNames.length} 个书库</span>
                     </div>
                     <ul className="nr-source-list">
-                      {SEARCH_SOURCES.map(name => (
-                        <li key={name}>{name}</li>
-                      ))}
+                      {enabledSourceNames.length === 0
+                        ? <li className="nr-source-empty">所有书源已关闭</li>
+                        : sourceSettings.filter(source => source.enabled).map(source => (
+                            <li key={source.id}>{source.name}</li>
+                          ))}
                     </ul>
                     <p className="nr-catalog-note">同一本书会在多个书库之间合并；解析失败会自动换下一个来源。</p>
                   </aside>

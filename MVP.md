@@ -26,7 +26,7 @@
 | 退出再进入回到上次章节与大致位置 | 通过（章节 + 像素偏移；滚动防抖 550ms） |
 | 章节页添加 | 通过（回溯「目录」入口，以本章正文作样本） |
 | 正文不进 Session / LLM | 通过（只写本地 store，正文仅经 Remote 返回 UI） |
-| 类型检查 / 测试 / 构建 | 通过（50 tests, host/client tsc, tsdown） |
+| 类型检查 / 测试 / 构建 | 通过（51 tests, host/client tsc, tsdown） |
 
 ## 实现范围
 
@@ -38,6 +38,7 @@
 - 阅读：目录页、章节搜索（>8 章）、上一章/下一章、进度线
 - 排版：14–24px 字号、三档行距、自动/浅色/护眼/深色主题
 - Host：`parseUrl` / `saveBook` / `listBooks` / `getToc` / `getChapter` / `saveProgress` / `removeBook`
+- 设置：书源启用/禁用（持久化到本地 store，影响聚合搜索）
 - 网络：超时、大小上限、重定向逐跳校验、SSRF、charset、同域节流
 - 存储：书架、目录、章节缓存、进度；临时文件 + rename；写队列串行
 - 测试：parser 9、fetcher 14、store 5、bqg 6、sources 10、search 4

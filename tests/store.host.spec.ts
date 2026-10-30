@@ -87,6 +87,15 @@ describe('ReaderStore', () => {
     }
   })
 
+  it('persists source preferences with the shelf', async () => {
+    const { root, store } = await tempStore()
+    await store.saveSettings({ disabledSources: ['bqg', 'mayitxt'] })
+    expect(await store.getSettings()).toEqual({ disabledSources: ['bqg', 'mayitxt'] })
+
+    const reopened = new ReaderStore(root)
+    expect(await reopened.getSettings()).toEqual({ disabledSources: ['bqg', 'mayitxt'] })
+  })
+
   it('serializes concurrent writes without corrupting the snapshot', async () => {
     const { root, store } = await tempStore()
     await Promise.all(Array.from({ length: 12 }, (_, index) => store.upsertBook(book(`book-${index}`))))
