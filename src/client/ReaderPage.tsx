@@ -30,6 +30,9 @@ const SPINES = ['#55766c', '#8d6b56', '#62758e', '#8b744f', '#766583', '#507d7d'
 /** Book names that make the empty search form immediately usable. */
 const SEARCH_SUGGESTIONS = ['剑来', '光阴之外', '凡人修仙传'] as const
 
+/** Libraries shown in the search landing panel. */
+const SEARCH_SOURCES = ['笔趣阁', '蚂蚁阅读', '就爱文学', '若雨中文', '唐三中文'] as const
+
 /** Call a generated Remote method and unwrap the result branch. */
 async function invoke<T>(call: (signal: AbortSignal) => Promise<RemoteResult<T>>): Promise<T> {
   const controller = new AbortController()
@@ -705,17 +708,35 @@ export function createReaderPage(ctx: Context): () => ReactNode {
         )}
 
         {view === 'search' && (
-          <header className="nr-topbar nr-subpage-topbar">
+          <header className="nr-topbar nr-searchbar">
             <button className="nr-icon-button" onClick={() => { setView('shelf'); setError(null) }} title="返回书架" aria-label="返回书架">
               <Icon name="back" />
             </button>
-            <span className="nr-subpage-context">书架</span>
-            <span className="nr-subpage-meta">5 个书库</span>
+            <div className="nr-searchbar-heading">
+              <h1 className="nr-searchbar-title">书库搜索</h1>
+              <span className="nr-searchbar-sub">5 个书库</span>
+            </div>
+            <form className="nr-topbar-search" onSubmit={(event) => { event.preventDefault(); void search() }}>
+              <Icon name="search" />
+              <input
+                id="dsh-relax-reader-search"
+                className="nr-field-input"
+                type="search"
+                value={searchQuery}
+                onChange={event => { setSearchQuery(event.target.value); if (searchDone) { setSearchDone(false); setSearchResults([]) } }}
+                placeholder="输入书名，例如：剑来"
+                spellCheck={false}
+                autoFocus
+              />
+              <button className="nr-primary" type="submit" disabled={searchBusy || searchQuery.trim() === ''}>
+                {searchBusy ? <><span className="nr-spinner" /> 搜索中</> : '搜索'}
+              </button>
+            </form>
           </header>
         )}
 
         {view === 'add' && (
-          <header className="nr-topbar nr-subpage-topbar">
+          <header className="nr-topbar nr-searchbar">
             <button className="nr-icon-button" disabled={busy} onClick={() => {
               operation.current += 1
               setBusy(false)
@@ -725,8 +746,28 @@ export function createReaderPage(ctx: Context): () => ReactNode {
             }} title="返回书架" aria-label="返回书架">
               <Icon name="back" />
             </button>
-            <span className="nr-subpage-context">书架</span>
-            <span className="nr-subpage-meta">支持 5 个站点</span>
+            <div className="nr-searchbar-heading">
+              <h1 className="nr-searchbar-title">添加小说</h1>
+              <span className="nr-searchbar-sub">支持 5 个站点</span>
+            </div>
+            <form className="nr-topbar-search" onSubmit={(event) => { event.preventDefault(); void parse() }}>
+              <Icon name="book" />
+              <input
+                id="dsh-relax-reader-url"
+                className="nr-field-input"
+                type="text"
+                inputMode="url"
+                value={url}
+                onChange={event => setUrl(event.target.value)}
+                placeholder="https://example.com/book/123"
+                spellCheck={false}
+                autoComplete="url"
+                autoFocus
+              />
+              <button className="nr-primary" type="submit" disabled={busy || url.trim() === ''}>
+                {busy ? <><span className="nr-spinner" /> 解析中</> : '解析'}
+              </button>
+            </form>
           </header>
         )}
 
@@ -797,36 +838,41 @@ export function createReaderPage(ctx: Context): () => ReactNode {
         )}
 
         {view === 'add' && (
-          <div className="nr-page nr-scroll">
+          <div className="nr-page nr-page-add nr-scroll">
             <div className="nr-page-inner">
-              <header className="nr-page-intro">
-                <h1 className="nr-page-title">从一页地址开始</h1>
-                <p className="nr-page-deck">粘贴书籍详情页、目录页或章节页。解析出书名和目录后，再决定是否收藏。</p>
-              </header>
+              {preview === null && !busy && (
+                <section className="nr-add-landing" aria-label="添加小说说明">
+                  <h2 className="nr-landing-title">粘贴一页，接着读</h2>
+                  <p className="nr-landing-deck">从书籍详情页、目录页或章节页开始。解析出书名和目录后，再决定是否收藏。</p>
+                  <ol className="nr-add-steps">
+                    <li className="nr-add-step">
+                      <span className="nr-add-step-index">1</span>
+                      <div>
+                        <strong>粘贴地址</strong>
+                        <span>详情页、目录页、章节页都可以。</span>
+                      </div>
+                    </li>
+                    <li className="nr-add-step">
+                      <span className="nr-add-step-index">2</span>
+                      <div>
+                        <strong>确认目录</strong>
+                        <span>核对书名、作者和章节数。</span>
+                      </div>
+                    </li>
+                    <li className="nr-add-step">
+                      <span className="nr-add-step-index">3</span>
+                      <div>
+                        <strong>收藏开读</strong>
+                        <span>目录和正文缓存到本地书架。</span>
+                      </div>
+                    </li>
+                  </ol>
+                </section>
+              )}
 
-              <section className="nr-workbench" aria-label="解析小说地址">
-                <form onSubmit={(event) => { event.preventDefault(); void parse() }}>
-                  <div className="nr-search-field">
-                    <Icon name="book" />
-                    <input
-                      id="dsh-relax-reader-url"
-                      className="nr-field-input"
-                      type="text"
-                      inputMode="url"
-                      value={url}
-                      onChange={event => setUrl(event.target.value)}
-                      placeholder="https://example.com/book/123"
-                      spellCheck={false}
-                      autoComplete="url"
-                      autoFocus
-                    />
-                    <button className="nr-primary" type="submit" disabled={busy || url.trim() === ''}>
-                      {busy ? <><span className="nr-spinner" /> 解析中</> : '解析'}
-                    </button>
-                  </div>
-                </form>
-                <p className="nr-workbench-note">支持笔趣阁、蚂蚁阅读、就爱文学、若雨中文、唐三中文；详情页、目录页、章节页都可以。</p>
-              </section>
+              {busy && preview === null && (
+                <div className="nr-parse-status"><span className="nr-spinner" /> 正在解析页面，确认书名和目录…</div>
+              )}
 
               {preview !== null && (
                 <section className="nr-preview" aria-label="解析预览">
@@ -896,47 +942,38 @@ export function createReaderPage(ctx: Context): () => ReactNode {
         )}
 
         {view === 'search' && (
-          <div className="nr-page nr-scroll">
+          <div className="nr-page nr-page-search nr-scroll">
             <div className="nr-page-inner">
-              <header className="nr-page-intro">
-                <h1 className="nr-page-title">找一本书</h1>
-                <p className="nr-page-deck">五个书库同时搜索。同一本书的不同来源会合并，先看目录，再决定收藏。</p>
-              </header>
-
-              <section className="nr-workbench" aria-label="搜索书库">
-                <form onSubmit={(event) => { event.preventDefault(); void search() }}>
-                  <div className="nr-search-field">
-                    <Icon name="search" />
-                    <input
-                      id="dsh-relax-reader-search"
-                      className="nr-field-input"
-                      type="search"
-                      value={searchQuery}
-                      onChange={event => { setSearchQuery(event.target.value); if (searchDone) { setSearchDone(false); setSearchResults([]) } }}
-                      placeholder="输入书名，例如：剑来"
-                      spellCheck={false}
-                      autoFocus
-                    />
-                    <button className="nr-primary" type="submit" disabled={searchBusy || searchQuery.trim() === ''}>
-                      {searchBusy ? <><span className="nr-spinner" /> 搜索中</> : '搜索'}
-                    </button>
+              {!searchBusy && !searchDone && searchResults.length === 0 && (
+                <section className="nr-search-landing" aria-label="书库搜索说明">
+                  <div>
+                    <h2 className="nr-landing-title">五个书库，一起找</h2>
+                    <p className="nr-landing-deck">按书名同时搜索五个书库。同一本书的不同来源会合并成一条结果，先看目录，再决定收藏。</p>
+                    <div className="nr-suggestions">
+                      <span>试试</span>
+                      {SEARCH_SUGGESTIONS.map(name => (
+                        <button
+                          key={name}
+                          type="button"
+                          className="nr-suggestion"
+                          disabled={searchBusy}
+                          onClick={() => { setSearchQuery(name); void search(name) }}
+                        >
+                          {name}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </form>
-                <div className="nr-suggestions">
-                  <span>试试</span>
-                  {SEARCH_SUGGESTIONS.map(name => (
-                    <button
-                      key={name}
-                      type="button"
-                      className="nr-suggestion"
-                      disabled={searchBusy}
-                      onClick={() => { setSearchQuery(name); void search(name) }}
-                    >
-                      {name}
-                    </button>
-                  ))}
-                </div>
-              </section>
+                  <aside className="nr-source-panel">
+                    <span className="nr-source-label">已接入</span>
+                    <ul className="nr-source-list">
+                      {SEARCH_SOURCES.map(name => (
+                        <li key={name}><span className="nr-source-dot" />{name}</li>
+                      ))}
+                    </ul>
+                  </aside>
+                </section>
+              )}
 
               {searchBusy && (
                 <div className="nr-search-status"><span className="nr-spinner" /> 正在五个书库里查找…</div>
