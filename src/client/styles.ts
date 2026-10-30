@@ -1148,7 +1148,7 @@ export const styles = String.raw`
 
 .nr-page-inner {
   width: 100%;
-  max-width: 1480px;
+  max-width: 1640px;
   margin: 0 auto;
 }
 
@@ -2544,7 +2544,7 @@ export const styles = String.raw`
   }
 
   .nr-search-results {
-    grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
     gap: 14px;
   }
 
