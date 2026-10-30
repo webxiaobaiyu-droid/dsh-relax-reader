@@ -838,7 +838,7 @@ export function createReaderPage(ctx: Context): () => ReactNode {
         )}
 
         {view === 'add' && (
-          <div className="nr-page nr-page-add nr-scroll">
+          <div className={`nr-page nr-page-add nr-scroll${preview === null && !busy ? ' nr-page-idle' : ''}`}>
             <div className="nr-page-inner">
               {preview === null && !busy && (
                 <section className="nr-add-landing" aria-label="添加小说说明">
@@ -942,35 +942,69 @@ export function createReaderPage(ctx: Context): () => ReactNode {
         )}
 
         {view === 'search' && (
-          <div className="nr-page nr-page-search nr-scroll">
+          <div className={`nr-page nr-page-search nr-scroll${!searchBusy && !searchDone && searchResults.length === 0 ? ' nr-page-idle' : ''}`}>
             <div className="nr-page-inner">
               {!searchBusy && !searchDone && searchResults.length === 0 && (
                 <section className="nr-search-landing" aria-label="书库搜索说明">
-                  <div>
-                    <h2 className="nr-landing-title">五个书库，一起找</h2>
-                    <p className="nr-landing-deck">按书名同时搜索五个书库。同一本书的不同来源会合并成一条结果，先看目录，再决定收藏。</p>
-                    <div className="nr-suggestions">
-                      <span>试试</span>
-                      {SEARCH_SUGGESTIONS.map(name => (
-                        <button
-                          key={name}
-                          type="button"
-                          className="nr-suggestion"
-                          disabled={searchBusy}
-                          onClick={() => { setSearchQuery(name); void search(name) }}
-                        >
-                          {name}
-                        </button>
-                      ))}
+                  <div className="nr-search-main">
+                    <div className="nr-search-main-top">
+                      <h2 className="nr-landing-title">五个书库，一起找</h2>
+                      <p className="nr-landing-deck">按书名同时搜索五个书库。同一本书的不同来源会合并成一条结果，先看目录，再决定收藏。</p>
+                      <div className="nr-suggestions">
+                        <span>试试</span>
+                        {SEARCH_SUGGESTIONS.map(name => (
+                          <button
+                            key={name}
+                            type="button"
+                            className="nr-suggestion"
+                            disabled={searchBusy}
+                            onClick={() => { setSearchQuery(name); void search(name) }}
+                          >
+                            {name}
+                          </button>
+                        ))}
+                      </div>
                     </div>
+
+                    {books.length > 0 && (
+                      <section className="nr-search-recent" aria-label="继续阅读">
+                        <div className="nr-recent-head">
+                          <h2>继续阅读</h2>
+                          <button type="button" className="nr-recent-all" onClick={() => setView('shelf')}>全部书架</button>
+                        </div>
+                        <div className="nr-recent-list">
+                          {books.slice(0, 4).map(book => (
+                            <button
+                              key={book.id}
+                              type="button"
+                              className="nr-recent-book"
+                              onClick={() => { void openBook(book) }}
+                              disabled={busy}
+                            >
+                              <Cover title={book.title} url={book.coverUrl} />
+                              <span className="nr-recent-copy">
+                                <span className="nr-recent-title">{book.title}</span>
+                                <span className="nr-recent-author">{book.author}</span>
+                                <span className="nr-recent-progress">{book.lastChapterId === undefined ? '未开始' : '继续上次阅读'}</span>
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </section>
+                    )}
                   </div>
-                  <aside className="nr-source-panel">
-                    <span className="nr-source-label">已接入</span>
+
+                  <aside className="nr-catalog">
+                    <div className="nr-catalog-head">
+                      <span>已接入</span>
+                      <span>5 个书库</span>
+                    </div>
                     <ul className="nr-source-list">
                       {SEARCH_SOURCES.map(name => (
-                        <li key={name}><span className="nr-source-dot" />{name}</li>
+                        <li key={name}>{name}</li>
                       ))}
                     </ul>
+                    <p className="nr-catalog-note">同一本书会在多个书库之间合并；解析失败会自动换下一个来源。</p>
                   </aside>
                 </section>
               )}
