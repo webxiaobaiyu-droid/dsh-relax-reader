@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/index.ts",
+    "src/types.ts",
+    "src/errors.ts",
+    "src/fetcher.ts",
+    "src/parser.ts",
+    "src/store.ts",
+    "src/sources.ts",
+    "src/search.ts",
+    "tests/**/*.host.spec.ts"
+  ]
+}
