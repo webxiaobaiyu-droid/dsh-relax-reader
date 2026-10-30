@@ -391,18 +391,42 @@ export const styles = String.raw`
   cursor: default;
 }
 
+.nr-shelf-titlebar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 2px;
+}
+
+.nr-shelf-title {
+  margin: 0;
+  font-family: var(--nr-serif);
+  font-size: 28px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.nr-shelf-titlebar span {
+  color: var(--nr-faint);
+  font-size: 10.5px;
+}
+
 .nr-shelf-stage {
   display: flex;
   flex-direction: column;
-  gap: 27px;
+  gap: 30px;
   width: 100%;
+  max-width: 1300px;
+  margin: 0 auto;
 }
 
 .nr-featured {
   position: relative;
   overflow: hidden;
   border: 1px solid var(--nr-line);
-  border-radius: 15px;
+  border-radius: 14px;
   background: var(--nr-surface);
   transition: border-color 160ms ease, background-color 160ms ease;
 }
@@ -416,9 +440,9 @@ export const styles = String.raw`
   appearance: none;
   display: flex;
   align-items: center;
-  gap: 17px;
+  gap: 26px;
   width: 100%;
-  padding: 18px;
+  padding: 26px;
   border: 0;
   background: transparent;
   color: inherit;
@@ -432,11 +456,11 @@ export const styles = String.raw`
 }
 
 .nr-featured .nr-cover-featured {
-  width: 92px;
-  height: 130px;
+  width: 132px;
+  height: 188px;
   border-left-width: 4px;
-  border-radius: 3px 6px 6px 3px;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18), 0 2px 5px rgba(0, 0, 0, 0.1);
+  border-radius: 3px 7px 7px 3px;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.15), 0 2px 5px rgba(0, 0, 0, 0.08);
   transition: transform 180ms ease;
 }
 
@@ -454,7 +478,7 @@ export const styles = String.raw`
   gap: 3px;
   flex: 1;
   min-width: 0;
-  padding: 2px 26px 2px 0;
+  padding: 2px 32px 2px 0;
 }
 
 .nr-featured-kicker {
@@ -468,9 +492,9 @@ export const styles = String.raw`
   margin-top: 2px;
   color: var(--nr-ink);
   font-family: var(--nr-serif);
-  font-size: 26px;
+  font-size: 30px;
   font-weight: 600;
-  line-height: 1.28;
+  line-height: 1.26;
   letter-spacing: 0.01em;
   white-space: nowrap;
   overflow: hidden;
@@ -479,15 +503,15 @@ export const styles = String.raw`
 
 .nr-featured-author {
   color: var(--nr-soft);
-  font-size: 11.5px;
+  font-size: 12px;
 }
 
 .nr-featured-desc {
   display: -webkit-box;
   max-width: 620px;
-  margin-top: 6px;
+  margin-top: 8px;
   color: var(--nr-soft);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.7;
   overflow: hidden;
   -webkit-line-clamp: 2;
@@ -498,20 +522,20 @@ export const styles = String.raw`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 13px;
-  margin-top: 12px;
+  gap: 14px;
+  margin-top: 18px;
 }
 
 .nr-featured-cta {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  height: 32px;
-  padding: 0 11px;
+  height: 34px;
+  padding: 0 13px;
   border-radius: 7px;
   background: var(--nr-accent);
   color: var(--nr-accent-ink);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -535,8 +559,8 @@ export const styles = String.raw`
   flex-direction: column;
   align-items: flex-end;
   gap: 3px;
-  min-width: 148px;
-  padding-left: 28px;
+  min-width: 156px;
+  padding-left: 30px;
   border-left: 1px solid var(--nr-line);
 }
 
@@ -549,7 +573,7 @@ export const styles = String.raw`
 
 .nr-featured-stat strong {
   font-family: var(--nr-serif);
-  font-size: 34px;
+  font-size: 38px;
   line-height: 1;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
@@ -631,9 +655,9 @@ export const styles = String.raw`
 
 .nr-shelf-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
   align-items: start;
-  gap: 24px 16px;
+  gap: 30px 22px;
   width: 100%;
   padding: 0;
   margin: 0;
@@ -645,31 +669,19 @@ export const styles = String.raw`
   display: flex;
   flex-direction: column;
   min-width: 0;
-  aspect-ratio: 1 / 1.618;
-  padding: 8px;
-  overflow: hidden;
-  border: 1px solid var(--nr-line);
-  border-radius: 10px;
-  background: var(--nr-surface);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.025);
-  transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
-}
-
-.nr-shelf-card:hover,
-.nr-shelf-card:focus-within {
-  border-color: var(--nr-line-strong);
-  background: color-mix(in srgb, var(--nr-surface) 82%, var(--nr-accent) 5%);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.07);
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .nr-shelf-card-open {
   appearance: none;
   display: flex;
-  flex: 1;
   flex-direction: column;
   width: 100%;
   min-width: 0;
-  min-height: 0;
   padding: 0;
   border: 0;
   background: transparent;
@@ -686,9 +698,9 @@ export const styles = String.raw`
 .nr-shelf-cover {
   position: relative;
   display: block;
-  flex: 1;
-  min-height: 0;
+  flex: none;
   width: 100%;
+  aspect-ratio: 2 / 3;
 }
 
 .nr-shelf-card .nr-cover-card {
@@ -696,7 +708,7 @@ export const styles = String.raw`
   height: 100%;
   border-left-width: 3px;
   border-radius: 3px 6px 6px 3px;
-  box-shadow: 0 7px 18px rgba(0, 0, 0, 0.13), 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.11), 0 2px 4px rgba(0, 0, 0, 0.04);
   transition: transform 180ms ease, box-shadow 180ms ease;
 }
 
@@ -706,8 +718,8 @@ export const styles = String.raw`
 
 .nr-shelf-card-open:hover .nr-cover-card,
 .nr-shelf-card-open:focus-visible .nr-cover-card {
-  transform: translateY(-3px);
-  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.2), 0 3px 8px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.17), 0 3px 7px rgba(0, 0, 0, 0.06);
 }
 
 .nr-shelf-card .nr-cover-card .nr-cover-glyph {
@@ -720,20 +732,19 @@ export const styles = String.raw`
   bottom: 7px;
   z-index: 2;
   padding: 2px 5px;
-  border-radius: 999px;
-  background: rgba(18, 20, 20, 0.72);
+  border-radius: 3px;
+  background: rgba(18, 20, 20, 0.68);
   color: #fff;
   font-size: 7.5px;
   line-height: 1.2;
   letter-spacing: 0.03em;
   pointer-events: none;
-  backdrop-filter: blur(5px);
 }
 
 .nr-shelf-card-copy {
   display: block;
   flex: none;
-  padding: 7px 2px 0;
+  padding: 10px 2px 0;
 }
 
 .nr-shelf-card-title {
@@ -741,7 +752,7 @@ export const styles = String.raw`
   min-height: 1.35em;
   color: var(--nr-ink);
   font-family: var(--nr-serif);
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.35;
   white-space: nowrap;
@@ -756,9 +767,9 @@ export const styles = String.raw`
 
 .nr-shelf-card-author {
   display: block;
-  margin-top: 2px;
+  margin-top: 3px;
   color: var(--nr-soft);
-  font-size: 9.5px;
+  font-size: 10.5px;
   line-height: 1.4;
   white-space: nowrap;
   overflow: hidden;
@@ -768,10 +779,10 @@ export const styles = String.raw`
 .nr-shelf-card-meta {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   margin-top: 5px;
   color: var(--nr-faint);
-  font-size: 8.5px;
+  font-size: 9.5px;
   line-height: 1.4;
   white-space: nowrap;
   overflow: hidden;
@@ -785,13 +796,15 @@ export const styles = String.raw`
 
 .nr-card-delete {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: 8px;
+  right: 8px;
   z-index: 3;
-  width: 22px;
-  height: 22px;
-  background: var(--nr-raised);
-  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.15);
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--nr-line);
+  background: color-mix(in srgb, var(--nr-paper) 88%, transparent);
+  box-shadow: none;
+  opacity: 0;
 }
 
 .nr-shelf-card:hover .nr-card-delete,
@@ -809,10 +822,9 @@ export const styles = String.raw`
   justify-content: center;
   gap: 10px;
   padding: 12px;
-  border: 1px solid var(--nr-line);
-  border-radius: 10px;
+  border: 1px solid var(--nr-line-strong);
+  border-radius: 8px;
   background: var(--nr-raised);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
   color: var(--nr-soft);
   font-size: 10.5px;
   line-height: 1.5;
@@ -1152,8 +1164,17 @@ export const styles = String.raw`
   margin: 0 auto;
 }
 
+.nr-page-search .nr-page-inner {
+  max-width: 1480px;
+}
+
 .nr-page-add .nr-page-inner {
   max-width: 1120px;
+}
+
+.nr-page-search.nr-page-idle .nr-page-inner {
+  display: block;
+  min-height: 0;
 }
 
 .nr-page-idle .nr-page-inner {
@@ -1180,23 +1201,22 @@ export const styles = String.raw`
 
 .nr-search-landing {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr) 240px 280px;
   align-items: start;
-  gap: 56px;
+  gap: 40px;
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 36px 40px;
-  border: 1px solid var(--nr-line);
-  border-radius: 16px;
-  background: var(--nr-raised);
+  max-width: none;
+  margin: 0;
+  padding: 36px 0 40px;
+  border-bottom: 1px solid var(--nr-line);
 }
 
-.nr-search-main {
-  min-width: 0;
+.nr-search-landing.no-recent {
+  grid-template-columns: minmax(0, 1fr) 280px;
 }
 
 .nr-search-main-top {
+  min-width: 0;
   max-width: 640px;
 }
 
@@ -1237,9 +1257,12 @@ export const styles = String.raw`
 }
 
 .nr-search-recent {
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 1px solid var(--nr-line);
+  min-width: 0;
+  margin-top: 0;
+  padding: 16px;
+  border: 1px solid var(--nr-line);
+  border-radius: 10px;
+  background: var(--nr-raised);
 }
 
 .nr-recent-head {
@@ -1275,9 +1298,9 @@ export const styles = String.raw`
 
 .nr-recent-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 14px;
-  margin-top: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .nr-recent-book {
@@ -1308,8 +1331,8 @@ export const styles = String.raw`
 
 .nr-recent-book .nr-cover {
   flex: none;
-  width: 44px;
-  height: 62px;
+  width: 48px;
+  height: 68px;
   border-radius: 3px;
 }
 
@@ -1875,64 +1898,105 @@ export const styles = String.raw`
 }
 
 .nr-page-settings .nr-page-inner {
-  max-width: 880px;
+  max-width: 1120px;
 }
 
-.nr-settings-page {
+.nr-settings-layout {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  gap: 64px;
   width: 100%;
-  max-width: 880px;
+  max-width: 1060px;
   margin: 0 auto;
+  padding: 10px 0 40px;
 }
 
-.nr-settings-intro {
-  padding: 8px 0 22px;
+.nr-settings-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  padding: 8px 22px 0 0;
+  border-right: 1px solid var(--nr-line);
+}
+
+.nr-settings-nav button {
+  appearance: none;
+  position: relative;
+  padding: 9px 0 9px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--nr-soft);
+  cursor: pointer;
+  font-size: 12.5px;
+  line-height: 1.5;
+  text-align: left;
+  transition: color 120ms ease;
+}
+
+.nr-settings-nav button::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 2px;
+  height: 14px;
+  transform: translateY(-50%);
+  background: transparent;
+}
+
+.nr-settings-nav button:hover {
+  color: var(--nr-ink);
+}
+
+.nr-settings-nav button.active {
+  color: var(--nr-ink);
+  font-weight: 600;
+}
+
+.nr-settings-nav button.active::before {
+  background: var(--nr-accent);
+}
+
+.nr-settings-main {
+  min-width: 0;
+}
+
+.nr-settings-panel {
+  max-width: 760px;
+}
+
+.nr-settings-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--nr-line);
 }
 
 .nr-settings-title {
   margin: 0;
   font-family: var(--nr-serif);
-  font-size: 30px;
+  font-size: 32px;
   line-height: 1.2;
   font-weight: 600;
   letter-spacing: 0.01em;
 }
 
 .nr-settings-deck {
-  max-width: 620px;
+  max-width: 580px;
   margin: 9px 0 0;
   color: var(--nr-soft);
   font-size: 12.5px;
   line-height: 1.75;
 }
 
-.nr-settings-card {
-  margin-top: 20px;
-  padding: 0 20px 6px;
-  border: 1px solid var(--nr-line);
-  border-radius: 14px;
-  background: var(--nr-raised);
-}
-
-.nr-settings-card-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 15px 0 12px;
-  border-bottom: 1px solid var(--nr-line);
-}
-
-.nr-settings-card-head h2 {
-  margin: 0;
-  font-family: var(--nr-serif);
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.nr-settings-card-head span {
+.nr-settings-count {
+  flex: none;
+  padding-top: 6px;
   color: var(--nr-faint);
-  font-size: 10.5px;
+  font-size: 11px;
   white-space: nowrap;
 }
 
@@ -1947,7 +2011,7 @@ export const styles = String.raw`
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  padding: 14px 0;
+  padding: 15px 0;
   border-bottom: 1px solid var(--nr-line);
 }
 
@@ -1964,7 +2028,8 @@ export const styles = String.raw`
 
 .nr-settings-source-copy strong {
   color: var(--nr-ink);
-  font-size: 13px;
+  font-family: var(--nr-serif);
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -2012,22 +2077,66 @@ export const styles = String.raw`
 }
 
 .nr-settings-note {
-  margin: 14px 0 8px;
+  margin: 16px 0 8px;
   color: var(--nr-faint);
   font-size: 11.5px;
   line-height: 1.65;
 }
 
 .nr-settings-error {
-  margin: 14px 0 8px;
+  margin: 16px 0 8px;
   color: var(--nr-danger);
   font-size: 11.5px;
   line-height: 1.6;
 }
 
-.nr-source-empty {
-  color: var(--nr-faint);
+.nr-settings-values {
+  margin: 0;
+  padding: 0;
+}
+
+.nr-settings-values > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--nr-line);
+}
+
+.nr-settings-values dt {
+  color: var(--nr-soft);
   font-size: 12px;
+}
+
+.nr-settings-values dd {
+  margin: 0;
+  color: var(--nr-ink);
+  font-family: var(--nr-serif);
+  font-size: 16px;
+}
+
+.nr-settings-path {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid var(--nr-line);
+  border-radius: 8px;
+  background: var(--nr-surface);
+}
+
+.nr-settings-path span {
+  color: var(--nr-faint);
+  font-size: 10.5px;
+}
+
+.nr-settings-path code {
+  color: var(--nr-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  overflow-wrap: break-word;
 }
 
 .nr-reader {
@@ -2102,7 +2211,7 @@ export const styles = String.raw`
 }
 
 .nr-article {
-  max-width: 680px;
+  max-width: 700px;
   margin: 0 auto;
 }
 
@@ -2843,7 +2952,7 @@ export const styles = String.raw`
 
   .nr-search-landing {
     gap: 56px;
-    padding: 40px 44px;
+    padding: 44px 0 40px;
   }
 
   .nr-landing-title {
@@ -2946,7 +3055,7 @@ export const styles = String.raw`
   }
 
   .nr-article {
-    max-width: 760px;
+    max-width: 720px;
   }
 
   .nr-chapter-position {
@@ -2961,7 +3070,7 @@ export const styles = String.raw`
   }
 
   .nr-reader-nav {
-    padding: 10px max(26px, calc((100% - 760px) / 2)) 12px;
+    padding: 10px max(26px, calc((100% - 720px) / 2)) 12px;
   }
 
   .nr-nav-button {
@@ -3051,6 +3160,12 @@ export const styles = String.raw`
   .nr-featured-aside {
     display: none;
   }
+
+  .nr-search-landing,
+  .nr-search-landing.no-recent {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
 }
 
 @container (max-width: 679px) {
@@ -3087,8 +3202,35 @@ export const styles = String.raw`
     font-size: 26px;
   }
 
-  .nr-settings-card {
-    padding: 0 16px 4px;
+  .nr-settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+    padding-top: 0;
+  }
+
+  .nr-settings-nav {
+    flex-direction: row;
+    gap: 20px;
+    padding: 0 0 9px;
+    border-right: 0;
+    border-bottom: 1px solid var(--nr-line);
+  }
+
+  .nr-settings-nav button {
+    padding: 4px 0 9px;
+  }
+
+  .nr-settings-nav button::before {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    transform: none;
+  }
+
+  .nr-settings-panel-head {
+    gap: 12px;
   }
 
   .nr-page-idle .nr-page-inner {

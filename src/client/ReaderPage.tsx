@@ -273,6 +273,7 @@ export function createReaderPage(ctx: Context): () => ReactNode {
     const [settingsData, setSettingsData] = useState<SettingsResponse | null>(null)
     const [settingsBusy, setSettingsBusy] = useState(false)
     const [settingsError, setSettingsError] = useState<string | null>(null)
+    const [settingsTab, setSettingsTab] = useState<'sources' | 'reading' | 'data'>('sources')
     const sourceSettings = settingsData?.sources ?? SOURCE_CATALOG.map(source => ({ ...source, enabled: true }))
     const enabledSourceNames = sourceSettings.filter(source => source.enabled).map(source => source.name)
     const [tocSearch, setTocSearch] = useState('')
@@ -475,6 +476,7 @@ export function createReaderPage(ctx: Context): () => ReactNode {
 
     function openSettings(): void {
       setSettingsOpen(false)
+      setSettingsTab('sources')
       setView('settings')
       setError(null)
       void loadSettings()
@@ -729,6 +731,8 @@ export function createReaderPage(ctx: Context): () => ReactNode {
     }, [toc, tocSearch])
     const previewConfidence = preview?.confidence === 'high' ? '解析完整'
       : preview?.confidence === 'medium' ? '解析可用' : '解析较弱'
+    const primaryBook = books[0]
+    const otherBooks = books.slice(1)
 
     return (
       <div className={`nr-root ${themeClass}`}>
@@ -830,7 +834,7 @@ export function createReaderPage(ctx: Context): () => ReactNode {
             </button>
             <div className="nr-searchbar-heading">
               <h1 className="nr-searchbar-title">设置</h1>
-              <span className="nr-searchbar-sub">书源管理</span>
+              <span className="nr-searchbar-sub">书源、阅读与数据</span>
             </div>
           </header>
         )}
@@ -855,48 +859,107 @@ export function createReaderPage(ctx: Context): () => ReactNode {
                   </div>
                 )
               : (
-                  <ul className="nr-shelf-grid">
-                    {books.map(book => (
-                      <li
-                        key={book.id}
-                        className={`nr-shelf-card${justAdded === book.id ? ' just-added' : ''}`}
-                        style={{ '--nr-spine': spineColor(book.title) } as CSSProperties}
-                      >
-                        <button className="nr-shelf-card-open" onClick={() => { void openBook(book) }} disabled={busy}>
-                          <span className="nr-shelf-cover">
-                            <Cover title={book.title} url={book.coverUrl} className="nr-cover-card" />
-                            <span className="nr-card-badge">{book.lastChapterId === undefined ? '未读' : '续读'}</span>
-                          </span>
-                          <span className="nr-shelf-card-copy">
-                            <span className="nr-shelf-card-title" title={book.title}>{book.title}</span>
-                            <span className="nr-shelf-card-author">{book.author}</span>
-                            <span className="nr-shelf-card-meta" title={book.sourceHost}>
-                              <span>{book.chapterCount} 章</span>
-                              <span className="nr-status-sep" />
-                              <span>{book.sourceHost}</span>
+                  <div className="nr-shelf-stage">
+                    <header className="nr-shelf-titlebar">
+                      <h1 className="nr-shelf-title">书架</h1>
+                      <span>{books.length} 本</span>
+                    </header>
+                    {primaryBook !== undefined && (
+                      <section className={`nr-featured${justAdded === primaryBook.id ? ' just-added' : ''}`}>
+                        <button className="nr-featured-open" onClick={() => { void openBook(primaryBook) }} disabled={busy}>
+                          <Cover title={primaryBook.title} url={primaryBook.coverUrl} className="nr-cover-featured" eager />
+                          <span className="nr-featured-body">
+                            <span className="nr-featured-kicker">继续阅读</span>
+                            <span className="nr-featured-title" title={primaryBook.title}>{primaryBook.title}</span>
+                            <span className="nr-featured-author">{primaryBook.author}</span>
+                            {primaryBook.description !== undefined && primaryBook.description !== '' && (
+                              <span className="nr-featured-desc">{readableDescription(primaryBook.description)}</span>
+                            )}
+                            <span className="nr-featured-footer">
+                              <span className="nr-featured-cta">继续阅读 <Icon name="right" /></span>
+                              <span className="nr-featured-meta">
+                                <span>{primaryBook.chapterCount} 章</span>
+                                <span className="nr-status-sep" />
+                                <span>{primaryBook.sourceHost}</span>
+                              </span>
                             </span>
+                          </span>
+                          <span className="nr-featured-aside">
+                            <span className="nr-featured-stat"><strong>{primaryBook.chapterCount}</strong><small>章</small></span>
+                            <span className="nr-featured-aside-note">{primaryBook.lastChapterId === undefined ? '尚未开始' : '上次阅读'}</span>
                           </span>
                         </button>
                         <button
-                          className="nr-row-action nr-card-delete"
-                          onClick={() => setPendingDelete(book.id)}
+                          className="nr-icon-button nr-featured-delete"
+                          onClick={() => setPendingDelete(primaryBook.id)}
                           title="从书架删除"
-                          aria-label={`删除《${book.title}》`}
+                          aria-label={`删除《${primaryBook.title}》`}
                         >
                           <Icon name="trash" />
                         </button>
-                        {pendingDelete === book.id && (
-                          <div className="nr-card-confirm">
-                            <span>删除《{book.title}》？</span>
+                        {pendingDelete === primaryBook.id && (
+                          <div className="nr-featured-confirm">
+                            <span>删除《{primaryBook.title}》？</span>
                             <div>
                               <button className="nr-mini-button" onClick={() => setPendingDelete(null)}>取消</button>
-                              <button className="nr-mini-button danger" onClick={() => { void remove(book) }} disabled={busy}>删除</button>
+                              <button className="nr-mini-button danger" onClick={() => { void remove(primaryBook) }} disabled={busy}>删除</button>
                             </div>
                           </div>
                         )}
-                      </li>
-                    ))}
-                  </ul>
+                      </section>
+                    )}
+
+                    {otherBooks.length > 0 && (
+                      <section className="nr-other-books">
+                        <div className="nr-shelf-section-head">
+                          <h2>全部书架</h2>
+                          <span>{books.length} 本</span>
+                        </div>
+                        <ul className="nr-shelf-grid">
+                          {otherBooks.map(book => (
+                            <li
+                              key={book.id}
+                              className={`nr-shelf-card${justAdded === book.id ? ' just-added' : ''}`}
+                              style={{ '--nr-spine': spineColor(book.title) } as CSSProperties}
+                            >
+                              <button className="nr-shelf-card-open" onClick={() => { void openBook(book) }} disabled={busy}>
+                                <span className="nr-shelf-cover">
+                                  <Cover title={book.title} url={book.coverUrl} className="nr-cover-card" />
+                                  <span className="nr-card-badge">{book.lastChapterId === undefined ? '未读' : '续读'}</span>
+                                </span>
+                                <span className="nr-shelf-card-copy">
+                                  <span className="nr-shelf-card-title" title={book.title}>{book.title}</span>
+                                  <span className="nr-shelf-card-author">{book.author}</span>
+                                  <span className="nr-shelf-card-meta" title={book.sourceHost}>
+                                    <span>{book.chapterCount} 章</span>
+                                    <span className="nr-status-sep" />
+                                    <span>{book.sourceHost}</span>
+                                  </span>
+                                </span>
+                              </button>
+                              <button
+                                className="nr-row-action nr-card-delete"
+                                onClick={() => setPendingDelete(book.id)}
+                                title="从书架删除"
+                                aria-label={`删除《${book.title}》`}
+                              >
+                                <Icon name="trash" />
+                              </button>
+                              {pendingDelete === book.id && (
+                                <div className="nr-card-confirm">
+                                  <span>删除《{book.title}》？</span>
+                                  <div>
+                                    <button className="nr-mini-button" onClick={() => setPendingDelete(null)}>取消</button>
+                                    <button className="nr-mini-button danger" onClick={() => { void remove(book) }} disabled={busy}>删除</button>
+                                  </div>
+                                </div>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    )}
+                  </div>
                 )}
           </div>
         )}
@@ -904,49 +967,103 @@ export function createReaderPage(ctx: Context): () => ReactNode {
         {view === 'settings' && (
           <div className="nr-page nr-page-settings nr-scroll">
             <div className="nr-page-inner">
-              <div className="nr-settings-page">
-                <header className="nr-settings-intro">
-                  <h1 className="nr-settings-title">书源与设置</h1>
-                  <p className="nr-settings-deck">选择参与聚合搜索的书源。关闭的书源不会出现在搜索结果里，已经收藏的书仍可正常阅读。</p>
-                </header>
+              <div className="nr-settings-layout">
+                <nav className="nr-settings-nav" aria-label="设置分类">
+                  <button
+                    type="button"
+                    className={settingsTab === 'sources' ? 'active' : ''}
+                    aria-current={settingsTab === 'sources' ? 'page' : undefined}
+                    onClick={() => setSettingsTab('sources')}
+                  >
+                    书源
+                  </button>
+                  <button
+                    type="button"
+                    className={settingsTab === 'reading' ? 'active' : ''}
+                    aria-current={settingsTab === 'reading' ? 'page' : undefined}
+                    onClick={() => setSettingsTab('reading')}
+                  >
+                    阅读
+                  </button>
+                  <button
+                    type="button"
+                    className={settingsTab === 'data' ? 'active' : ''}
+                    aria-current={settingsTab === 'data' ? 'page' : undefined}
+                    onClick={() => setSettingsTab('data')}
+                  >
+                    数据
+                  </button>
+                </nav>
 
-                <section className="nr-settings-card" aria-label="书源设置">
-                  <div className="nr-settings-card-head">
-                    <h2>书源</h2>
-                    <span>{sourceSettings.filter(source => source.enabled).length} / {sourceSettings.length} 已启用</span>
-                  </div>
-                  <ul className="nr-settings-source-list">
-                    {sourceSettings.map(source => (
-                      <li key={source.id} className="nr-settings-source">
-                        <div className="nr-settings-source-copy">
-                          <strong>{source.name}</strong>
-                          <span>{source.detail}</span>
+                <div className="nr-settings-main">
+                  {settingsTab === 'sources' && (
+                    <section className="nr-settings-panel" aria-label="书源设置">
+                      <header className="nr-settings-panel-head">
+                        <div>
+                          <h1 className="nr-settings-title">书源</h1>
+                          <p className="nr-settings-deck">选择参与聚合搜索的书源。关闭后不再出现在搜索结果里，已收藏的书仍可正常阅读。</p>
                         </div>
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={source.enabled}
-                          aria-label={`${source.name}书源`}
-                          className={`nr-switch${source.enabled ? ' on' : ''}`}
-                          disabled={settingsBusy || settingsData === null}
-                          onClick={() => { void toggleSource(source.id, !source.enabled) }}
-                        >
-                          <span className="nr-switch-thumb" />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  {settingsData === null && settingsError === null && <p className="nr-settings-note">正在读取书源设置…</p>}
-                  {settingsError !== null && <p className="nr-settings-error" role="alert">{settingsError}</p>}
-                </section>
+                        <span className="nr-settings-count">
+                          {sourceSettings.filter(source => source.enabled).length} / {sourceSettings.length}
+                        </span>
+                      </header>
+                      <ul className="nr-settings-source-list">
+                        {sourceSettings.map(source => (
+                          <li key={source.id} className="nr-settings-source">
+                            <div className="nr-settings-source-copy">
+                              <strong>{source.name}</strong>
+                              <span>{source.detail}</span>
+                            </div>
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={source.enabled}
+                              aria-label={`${source.name}书源`}
+                              className={`nr-switch${source.enabled ? ' on' : ''}`}
+                              disabled={settingsBusy || settingsData === null}
+                              onClick={() => { void toggleSource(source.id, !source.enabled) }}
+                            >
+                              <span className="nr-switch-thumb" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                      {settingsData === null && settingsError === null && <p className="nr-settings-note">正在读取书源设置…</p>}
+                      {settingsError !== null && <p className="nr-settings-error" role="alert">{settingsError}</p>}
+                    </section>
+                  )}
 
-                <section className="nr-settings-card" aria-label="阅读设置说明">
-                  <div className="nr-settings-card-head">
-                    <h2>阅读</h2>
-                    <span>阅读页右上角</span>
-                  </div>
-                  <p className="nr-settings-note">字号、行距和主题在阅读页右上角的「阅读设置」里调整。这里只管理聚合搜索使用的书源。</p>
-                </section>
+                  {settingsTab === 'reading' && (
+                    <section className="nr-settings-panel" aria-label="阅读设置说明">
+                      <header className="nr-settings-panel-head">
+                        <div>
+                          <h1 className="nr-settings-title">阅读</h1>
+                          <p className="nr-settings-deck">当前阅读偏好。字号、行距和主题可以在阅读页右上角的设置里继续调整。</p>
+                        </div>
+                      </header>
+                      <dl className="nr-settings-values">
+                        <div><dt>字号</dt><dd>{fontSize} px</dd></div>
+                        <div><dt>行距</dt><dd>{lineHeight}</dd></div>
+                        <div><dt>主题</dt><dd>{theme === 'auto' ? '跟随系统' : theme === 'light' ? '浅色' : theme === 'sepia' ? '护眼' : '深色'}</dd></div>
+                      </dl>
+                    </section>
+                  )}
+
+                  {settingsTab === 'data' && (
+                    <section className="nr-settings-panel" aria-label="数据说明">
+                      <header className="nr-settings-panel-head">
+                        <div>
+                          <h1 className="nr-settings-title">数据</h1>
+                          <p className="nr-settings-deck">书架、目录、章节缓存和书源设置都保存在本机，不进入会话或模型上下文。</p>
+                        </div>
+                      </header>
+                      <div className="nr-settings-path">
+                        <span>存储位置</span>
+                        <code>$DSH_HOME/dsh-relax-reader/store.json</code>
+                      </div>
+                    </section>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -1060,9 +1177,8 @@ export function createReaderPage(ctx: Context): () => ReactNode {
           <div className={`nr-page nr-page-search nr-scroll${!searchBusy && !searchDone && searchResults.length === 0 ? ' nr-page-idle' : ''}`}>
             <div className="nr-page-inner">
               {!searchBusy && !searchDone && searchResults.length === 0 && (
-                <section className="nr-search-landing" aria-label="书库搜索说明">
-                  <div className="nr-search-main">
-                    <div className="nr-search-main-top">
+                <section className={`nr-search-landing${books.length === 0 ? ' no-recent' : ''}`} aria-label="书库搜索说明">
+                  <div className="nr-search-main-top">
                       <h2 className="nr-landing-title">
                         {enabledSourceNames.length === 0 ? '没有启用的书库' : `${enabledSourceNames.length} 个书库，一起找`}
                       </h2>
@@ -1109,7 +1225,6 @@ export function createReaderPage(ctx: Context): () => ReactNode {
                         </div>
                       </section>
                     )}
-                  </div>
 
                   <aside className="nr-catalog">
                     <div className="nr-catalog-head">

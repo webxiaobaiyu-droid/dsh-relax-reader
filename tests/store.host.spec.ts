@@ -87,12 +87,14 @@ describe('ReaderStore', () => {
     }
   })
 
-  it('persists source preferences with the shelf', async () => {
+  it('persists source preferences without dropping the shelf', async () => {
     const { root, store } = await tempStore()
+    await store.upsertBook(book())
     await store.saveSettings({ disabledSources: ['bqg', 'mayitxt'] })
     expect(await store.getSettings()).toEqual({ disabledSources: ['bqg', 'mayitxt'] })
 
     const reopened = new ReaderStore(root)
+    expect(await reopened.listBooks()).toHaveLength(1)
     expect(await reopened.getSettings()).toEqual({ disabledSources: ['bqg', 'mayitxt'] })
   })
 
