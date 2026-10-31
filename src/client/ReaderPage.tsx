@@ -732,7 +732,6 @@ export function createReaderPage(ctx: Context): () => ReactNode {
     const previewConfidence = preview?.confidence === 'high' ? '解析完整'
       : preview?.confidence === 'medium' ? '解析可用' : '解析较弱'
     const primaryBook = books[0]
-    const otherBooks = books.slice(1)
 
     return (
       <div className={`nr-root ${themeClass}`}>
@@ -865,32 +864,19 @@ export function createReaderPage(ctx: Context): () => ReactNode {
                       <span>{books.length} 本</span>
                     </header>
                     {primaryBook !== undefined && (
-                      <section className={`nr-featured${justAdded === primaryBook.id ? ' just-added' : ''}`}>
-                        <button className="nr-featured-open" onClick={() => { void openBook(primaryBook) }} disabled={busy}>
-                          <Cover title={primaryBook.title} url={primaryBook.coverUrl} className="nr-cover-featured" eager />
-                          <span className="nr-featured-body">
-                            <span className="nr-featured-kicker">继续阅读</span>
-                            <span className="nr-featured-title" title={primaryBook.title}>{primaryBook.title}</span>
-                            <span className="nr-featured-author">{primaryBook.author}</span>
-                            {primaryBook.description !== undefined && primaryBook.description !== '' && (
-                              <span className="nr-featured-desc">{readableDescription(primaryBook.description)}</span>
-                            )}
-                            <span className="nr-featured-footer">
-                              <span className="nr-featured-cta">继续阅读 <Icon name="right" /></span>
-                              <span className="nr-featured-meta">
-                                <span>{primaryBook.chapterCount} 章</span>
-                                <span className="nr-status-sep" />
-                                <span>{primaryBook.sourceHost}</span>
-                              </span>
-                            </span>
+                      <section className={`nr-continue${justAdded === primaryBook.id ? ' just-added' : ''}`}>
+                        <button className="nr-continue-open" onClick={() => { void openBook(primaryBook) }} disabled={busy}>
+                          <Cover title={primaryBook.title} url={primaryBook.coverUrl} className="nr-cover-continue" eager />
+                          <span className="nr-continue-copy">
+                            <span className="nr-continue-kicker">继续阅读</span>
+                            <span className="nr-continue-title" title={primaryBook.title}>{primaryBook.title}</span>
+                            <span className="nr-continue-meta">{primaryBook.author} · {primaryBook.chapterCount} 章</span>
+                            <span className="nr-continue-progress">{primaryBook.lastChapterId === undefined ? '尚未开始' : '上次阅读'} · {primaryBook.sourceHost}</span>
                           </span>
-                          <span className="nr-featured-aside">
-                            <span className="nr-featured-stat"><strong>{primaryBook.chapterCount}</strong><small>章</small></span>
-                            <span className="nr-featured-aside-note">{primaryBook.lastChapterId === undefined ? '尚未开始' : '上次阅读'}</span>
-                          </span>
+                          <span className="nr-continue-action">继续阅读 <Icon name="right" /></span>
                         </button>
                         <button
-                          className="nr-icon-button nr-featured-delete"
+                          className="nr-icon-button nr-continue-delete"
                           onClick={() => setPendingDelete(primaryBook.id)}
                           title="从书架删除"
                           aria-label={`删除《${primaryBook.title}》`}
@@ -898,7 +884,7 @@ export function createReaderPage(ctx: Context): () => ReactNode {
                           <Icon name="trash" />
                         </button>
                         {pendingDelete === primaryBook.id && (
-                          <div className="nr-featured-confirm">
+                          <div className="nr-continue-confirm">
                             <span>删除《{primaryBook.title}》？</span>
                             <div>
                               <button className="nr-mini-button" onClick={() => setPendingDelete(null)}>取消</button>
@@ -909,56 +895,54 @@ export function createReaderPage(ctx: Context): () => ReactNode {
                       </section>
                     )}
 
-                    {otherBooks.length > 0 && (
-                      <section className="nr-other-books">
-                        <div className="nr-shelf-section-head">
-                          <h2>全部书架</h2>
-                          <span>{books.length} 本</span>
-                        </div>
-                        <ul className="nr-shelf-grid">
-                          {otherBooks.map(book => (
-                            <li
-                              key={book.id}
-                              className={`nr-shelf-card${justAdded === book.id ? ' just-added' : ''}`}
-                              style={{ '--nr-spine': spineColor(book.title) } as CSSProperties}
+                    <section className="nr-other-books">
+                      <div className="nr-shelf-section-head">
+                        <h2>全部书架</h2>
+                        <span>{books.length} 本</span>
+                      </div>
+                      <ul className="nr-shelf-grid">
+                        {books.map(book => (
+                          <li
+                            key={book.id}
+                            className={`nr-shelf-card${justAdded === book.id ? ' just-added' : ''}`}
+                            style={{ '--nr-spine': spineColor(book.title) } as CSSProperties}
+                          >
+                            <button className="nr-shelf-card-open" onClick={() => { void openBook(book) }} disabled={busy}>
+                              <span className="nr-shelf-cover">
+                                <Cover title={book.title} url={book.coverUrl} className="nr-cover-card" />
+                                <span className="nr-card-badge">{book.lastChapterId === undefined ? '未读' : '续读'}</span>
+                              </span>
+                              <span className="nr-shelf-card-copy">
+                                <span className="nr-shelf-card-title" title={book.title}>{book.title}</span>
+                                <span className="nr-shelf-card-author">{book.author}</span>
+                                <span className="nr-shelf-card-meta" title={book.sourceHost}>
+                                  <span>{book.chapterCount} 章</span>
+                                  <span className="nr-status-sep" />
+                                  <span>{book.sourceHost}</span>
+                                </span>
+                              </span>
+                            </button>
+                            <button
+                              className="nr-row-action nr-card-delete"
+                              onClick={() => setPendingDelete(book.id)}
+                              title="从书架删除"
+                              aria-label={`删除《${book.title}》`}
                             >
-                              <button className="nr-shelf-card-open" onClick={() => { void openBook(book) }} disabled={busy}>
-                                <span className="nr-shelf-cover">
-                                  <Cover title={book.title} url={book.coverUrl} className="nr-cover-card" />
-                                  <span className="nr-card-badge">{book.lastChapterId === undefined ? '未读' : '续读'}</span>
-                                </span>
-                                <span className="nr-shelf-card-copy">
-                                  <span className="nr-shelf-card-title" title={book.title}>{book.title}</span>
-                                  <span className="nr-shelf-card-author">{book.author}</span>
-                                  <span className="nr-shelf-card-meta" title={book.sourceHost}>
-                                    <span>{book.chapterCount} 章</span>
-                                    <span className="nr-status-sep" />
-                                    <span>{book.sourceHost}</span>
-                                  </span>
-                                </span>
-                              </button>
-                              <button
-                                className="nr-row-action nr-card-delete"
-                                onClick={() => setPendingDelete(book.id)}
-                                title="从书架删除"
-                                aria-label={`删除《${book.title}》`}
-                              >
-                                <Icon name="trash" />
-                              </button>
-                              {pendingDelete === book.id && (
-                                <div className="nr-card-confirm">
-                                  <span>删除《{book.title}》？</span>
-                                  <div>
-                                    <button className="nr-mini-button" onClick={() => setPendingDelete(null)}>取消</button>
-                                    <button className="nr-mini-button danger" onClick={() => { void remove(book) }} disabled={busy}>删除</button>
-                                  </div>
+                              <Icon name="trash" />
+                            </button>
+                            {pendingDelete === book.id && (
+                              <div className="nr-card-confirm">
+                                <span>删除《{book.title}》？</span>
+                                <div>
+                                  <button className="nr-mini-button" onClick={() => setPendingDelete(null)}>取消</button>
+                                  <button className="nr-mini-button danger" onClick={() => { void remove(book) }} disabled={busy}>删除</button>
                                 </div>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      </section>
-                    )}
+                              </div>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
                   </div>
                 )}
           </div>
@@ -1250,18 +1234,27 @@ export function createReaderPage(ctx: Context): () => ReactNode {
                 <div className="nr-search-empty">
                   <strong>没有找到“{searchQuery.trim()}”</strong>
                   <span>换个书名，或者直接粘贴书籍地址。</span>
-                  <button
-                    type="button"
-                    className="nr-secondary"
-                    onClick={() => { setSearchQuery(''); setSearchDone(false); setSearchResults([]) }}
-                  >
-                    换个书名
-                  </button>
+                  <div className="nr-search-empty-actions">
+                    <button
+                      type="button"
+                      className="nr-secondary"
+                      onClick={() => { setSearchQuery(''); setSearchDone(false); setSearchResults([]) }}
+                    >
+                      换个书名
+                    </button>
+                    <button
+                      type="button"
+                      className="nr-secondary"
+                      onClick={() => { setSearchQuery(''); setSearchDone(false); setSearchResults([]); setView('add') }}
+                    >
+                      粘贴地址
+                    </button>
+                  </div>
                 </div>
               )}
               {searchResults.length > 0 && (
                 <section className="nr-search-section" aria-label="搜索结果">
-                  <p className="nr-search-count">找到 {searchResults.length} 本</p>
+                  <p className="nr-search-count">找到 {searchResults.length} 本<span>来自 {enabledSourceNames.length} 个书库</span></p>
                   <div className="nr-search-results">
                     {searchResults.map(result => (
                       <button key={result.id} className="nr-search-card" onClick={() => openSearchResult(result)} disabled={busy || searchBusy}>
