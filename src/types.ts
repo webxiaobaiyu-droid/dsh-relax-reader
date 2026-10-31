@@ -17,6 +17,7 @@ export interface Book {
   createdAt: number
   updatedAt: number
   lastChapterId?: string | undefined
+  lastChapterIndex?: number | undefined
   lastOffset?: number
 }
 

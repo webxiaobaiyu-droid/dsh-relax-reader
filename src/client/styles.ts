@@ -784,9 +784,9 @@ export const styles = String.raw`
 
 .nr-shelf-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
-  align-items: start;
-  gap: 30px 22px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  align-items: stretch;
+  gap: 16px;
   width: 100%;
   padding: 0;
   margin: 0;
@@ -796,19 +796,27 @@ export const styles = String.raw`
 .nr-shelf-card {
   position: relative;
   display: flex;
-  flex-direction: column;
   min-width: 0;
-  padding: 0;
-  overflow: visible;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
+  aspect-ratio: 1.618 / 1;
+  padding: 10px;
+  overflow: hidden;
+  border: 1px solid var(--nr-line);
+  border-radius: 8px;
+  background: var(--nr-surface);
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.nr-shelf-card:hover,
+.nr-shelf-card:focus-within {
+  border-color: var(--nr-accent);
+  background: color-mix(in srgb, var(--nr-surface) 88%, var(--nr-accent) 4%);
 }
 
 .nr-shelf-card-open {
   appearance: none;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   width: 100%;
   min-width: 0;
   padding: 0;
@@ -828,17 +836,18 @@ export const styles = String.raw`
   position: relative;
   display: block;
   flex: none;
-  width: 100%;
-  aspect-ratio: 2 / 3;
+  width: 52px;
+  height: 78px;
+  overflow: hidden;
 }
 
 .nr-shelf-card .nr-cover-card {
   width: 100%;
   height: 100%;
-  border-left-width: 3px;
-  border-radius: 3px 6px 6px 3px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.11), 0 2px 4px rgba(0, 0, 0, 0.04);
-  transition: transform 180ms ease, box-shadow 180ms ease;
+  border-left-width: 2px;
+  border-radius: 2px 4px 4px 2px;
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 160ms ease, box-shadow 160ms ease;
 }
 
 .nr-shelf-card .nr-cover-card img {
@@ -847,47 +856,48 @@ export const styles = String.raw`
 
 .nr-shelf-card-open:hover .nr-cover-card,
 .nr-shelf-card-open:focus-visible .nr-cover-card {
-  transform: translateY(-2px);
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.17), 0 3px 7px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+  box-shadow: 0 9px 18px rgba(0, 0, 0, 0.14);
 }
 
 .nr-shelf-card .nr-cover-card .nr-cover-glyph {
-  font-size: 34px;
+  font-size: 18px;
 }
 
 .nr-card-badge {
   position: absolute;
-  left: 7px;
-  bottom: 7px;
+  left: 4px;
+  bottom: 4px;
   z-index: 2;
-  padding: 2px 5px;
-  border-radius: 3px;
+  padding: 1px 4px;
+  border-radius: 2px;
   background: rgba(18, 20, 20, 0.68);
   color: #fff;
-  font-size: 7.5px;
+  font-size: 7px;
   line-height: 1.2;
-  letter-spacing: 0.03em;
   pointer-events: none;
 }
 
 .nr-shelf-card-copy {
-  display: block;
-  flex: none;
-  padding: 10px 2px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  align-self: stretch;
+  padding: 1px 0;
 }
 
 .nr-shelf-card-title {
   display: block;
-  min-height: 1.35em;
+  min-width: 0;
   color: var(--nr-ink);
   font-family: var(--nr-serif);
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   line-height: 1.35;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: color 120ms ease;
 }
 
 .nr-shelf-card-open:hover .nr-shelf-card-title {
@@ -896,43 +906,56 @@ export const styles = String.raw`
 
 .nr-shelf-card-author {
   display: block;
-  margin-top: 3px;
   color: var(--nr-soft);
-  font-size: 10.5px;
+  font-size: 10px;
   line-height: 1.4;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.nr-shelf-card-meta {
+.nr-shelf-progress {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 5px;
-  color: var(--nr-faint);
-  font-size: 9.5px;
-  line-height: 1.4;
-  white-space: nowrap;
-  overflow: hidden;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: auto;
+  min-width: 0;
 }
 
-.nr-shelf-card-meta > span:last-child {
-  min-width: 0;
+.nr-shelf-progress-label {
+  color: var(--nr-faint);
+  font-size: 9px;
+  line-height: 1.3;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.nr-shelf-progress-track {
+  display: block;
+  width: 100%;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--nr-line);
+}
+
+.nr-shelf-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--nr-accent);
 }
 
 .nr-card-delete {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 5px;
+  right: 5px;
   z-index: 3;
-  width: 24px;
-  height: 24px;
+  width: 21px;
+  height: 21px;
   border: 1px solid var(--nr-line);
-  background: color-mix(in srgb, var(--nr-paper) 88%, transparent);
-  box-shadow: none;
+  background: var(--nr-raised);
   opacity: 0;
 }
 
@@ -949,14 +972,13 @@ export const styles = String.raw`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 12px;
-  border: 1px solid var(--nr-line-strong);
+  gap: 8px;
+  padding: 10px;
   border-radius: 8px;
   background: var(--nr-raised);
   color: var(--nr-soft);
-  font-size: 10.5px;
-  line-height: 1.5;
+  font-size: 10px;
+  line-height: 1.45;
   text-align: center;
 }
 
@@ -1293,17 +1315,21 @@ export const styles = String.raw`
   margin: 0 auto;
 }
 
+.nr-page-search {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.nr-page-search::-webkit-scrollbar {
+  display: none;
+}
+
 .nr-page-search .nr-page-inner {
   max-width: 1480px;
 }
 
 .nr-page-add .nr-page-inner {
   max-width: 1120px;
-}
-
-.nr-page-search.nr-page-idle .nr-page-inner {
-  display: block;
-  min-height: 0;
 }
 
 .nr-page-idle .nr-page-inner {
@@ -1329,24 +1355,42 @@ export const styles = String.raw`
 }
 
 .nr-search-landing {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 240px 280px;
-  align-items: start;
-  gap: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  max-width: none;
   margin: 0;
-  padding: 36px 0 40px;
-  border-bottom: 1px solid var(--nr-line);
-}
-
-.nr-search-landing.no-recent {
-  grid-template-columns: minmax(0, 1fr) 280px;
+  padding: 20px 0;
 }
 
 .nr-search-main-top {
-  min-width: 0;
-  max-width: 640px;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.nr-landing-title {
+  margin: 0;
+  font-family: var(--nr-serif);
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+}
+
+.nr-landing-deck {
+  max-width: 620px;
+  margin: 9px 0 0;
+  color: var(--nr-soft);
+  font-size: 12.5px;
+  line-height: 1.75;
+}
+
+.nr-search-landing .nr-landing-deck {
+  max-width: 430px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .nr-suggestions {
@@ -1358,6 +1402,10 @@ export const styles = String.raw`
   color: var(--nr-faint);
   font-size: 11px;
   line-height: 1.6;
+}
+
+.nr-search-landing .nr-suggestions {
+  justify-content: center;
 }
 
 .nr-suggestion {
@@ -1383,161 +1431,6 @@ export const styles = String.raw`
 .nr-suggestion:disabled {
   opacity: 0.5;
   cursor: default;
-}
-
-.nr-search-recent {
-  min-width: 0;
-  margin-top: 0;
-  padding: 16px;
-  border: 1px solid var(--nr-line);
-  border-radius: 10px;
-  background: var(--nr-raised);
-}
-
-.nr-recent-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.nr-recent-head h2 {
-  margin: 0;
-  font-family: var(--nr-serif);
-  font-size: 19px;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.nr-recent-all {
-  appearance: none;
-  padding: 0 0 2px;
-  border: 0;
-  border-bottom: 1px solid var(--nr-line-strong);
-  background: transparent;
-  color: var(--nr-soft);
-  cursor: pointer;
-  font-size: 11.5px;
-}
-
-.nr-recent-all:hover {
-  border-color: var(--nr-accent);
-  color: var(--nr-accent);
-}
-
-.nr-recent-list {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.nr-recent-book {
-  appearance: none;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  padding: 12px;
-  border: 1px solid var(--nr-line);
-  border-radius: 11px;
-  background: var(--nr-paper);
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: border-color 140ms ease, background-color 140ms ease;
-}
-
-.nr-recent-book:hover:not(:disabled) {
-  border-color: var(--nr-accent);
-  background: color-mix(in srgb, var(--nr-accent) 5%, var(--nr-paper));
-}
-
-.nr-recent-book:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
-
-.nr-recent-book .nr-cover {
-  flex: none;
-  width: 48px;
-  height: 68px;
-  border-radius: 3px;
-}
-
-.nr-recent-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.nr-recent-title {
-  color: var(--nr-ink);
-  font-family: var(--nr-serif);
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.35;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.nr-recent-author {
-  color: var(--nr-soft);
-  font-size: 10.5px;
-}
-
-.nr-recent-progress {
-  margin-top: 2px;
-  color: var(--nr-accent);
-  font-size: 9.5px;
-  letter-spacing: 0.03em;
-}
-
-.nr-catalog {
-  min-width: 0;
-  padding-left: 30px;
-  border-left: 1px solid var(--nr-line);
-}
-
-.nr-catalog-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--nr-line);
-  color: var(--nr-faint);
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
-}
-
-.nr-source-list {
-  margin: 8px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.nr-source-list li {
-  padding: 10px 0;
-  border-bottom: 1px solid var(--nr-line);
-  color: var(--nr-soft);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.nr-source-list li:last-child {
-  border-bottom: 0;
-}
-
-.nr-catalog-note {
-  margin: 16px 0 0;
-  padding-top: 16px;
-  border-top: 1px solid var(--nr-line);
-  color: var(--nr-faint);
-  font-size: 10.5px;
-  line-height: 1.65;
 }
 
 .nr-add-steps {
@@ -2910,13 +2803,13 @@ export const styles = String.raw`
   }
 
   .nr-shelf-grid {
-    grid-template-columns: repeat(auto-fill, minmax(144px, 1fr));
-    gap: 28px 18px;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
   }
 
   .nr-shelf-stage {
     width: 100%;
-    max-width: 1220px;
+    max-width: 1300px;
     margin: 0 auto;
     gap: 34px;
   }
@@ -3094,8 +2987,7 @@ export const styles = String.raw`
   }
 
   .nr-search-landing {
-    gap: 56px;
-    padding: 44px 0 40px;
+    padding: 32px 0;
   }
 
   .nr-landing-title {
@@ -3303,12 +3195,6 @@ export const styles = String.raw`
   .nr-featured-aside {
     display: none;
   }
-
-  .nr-search-landing,
-  .nr-search-landing.no-recent {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 24px;
-  }
 }
 
 @container (max-width: 679px) {
@@ -3403,17 +3289,6 @@ export const styles = String.raw`
     margin-left: 0;
   }
 
-  .nr-search-landing {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 22px;
-  }
-
-  .nr-catalog {
-    padding: 20px 0 0;
-    border-top: 1px solid var(--nr-line);
-    border-left: 0;
-  }
-
   .nr-add-steps {
     grid-template-columns: minmax(0, 1fr);
     gap: 16px;
@@ -3422,27 +3297,36 @@ export const styles = String.raw`
 
 @container (max-width: 520px) {
   .nr-shelf-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 20px 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .nr-shelf-card {
+    padding: 8px;
+  }
+
+  .nr-shelf-cover {
+    width: 44px;
+    height: 66px;
   }
 
   .nr-shelf-card-title {
-    font-size: 12.5px;
+    font-size: 12px;
   }
 
   .nr-shelf-card-author {
-    font-size: 9.5px;
+    font-size: 9px;
   }
 
-  .nr-shelf-card-meta {
-    font-size: 8.5px;
+  .nr-shelf-progress-label {
+    font-size: 8px;
   }
 }
 
 @container (max-width: 310px) {
   .nr-shelf-grid {
-    grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
-    gap: 20px 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
 
   .nr-topbar {

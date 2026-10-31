@@ -82,6 +82,7 @@ function sanitizeBooks(value: unknown): Book[] {
       createdAt: book.createdAt,
       updatedAt: book.updatedAt,
       ...typeof book.lastChapterId === 'string' ? { lastChapterId: book.lastChapterId } : {},
+      ...typeof book.lastChapterIndex === 'number' ? { lastChapterIndex: book.lastChapterIndex } : {},
       ...typeof book.lastOffset === 'number' ? { lastOffset: book.lastOffset } : {},
     })
   }
@@ -170,6 +171,11 @@ export class ReaderStore {
     }
     const pending = this.loading
     const data = await pending
+    for (const book of data.books) {
+      if (book.lastChapterIndex !== undefined || book.lastChapterId === undefined) continue
+      const index = data.toc[book.id]?.findIndex(chapter => chapter.id === book.lastChapterId) ?? -1
+      if (index >= 0) book.lastChapterIndex = index
+    }
     this.data = data
     if (this.loading === pending) this.loading = undefined
     return data
@@ -288,6 +294,8 @@ export class ReaderStore {
     const book = data.books.find(item => item.id === bookId)
     if (book === undefined) throw new FetchError('store-failed', '书架里没有这本书', bookId)
     book.lastChapterId = chapterIdValue
+    const chapterIndex = data.toc[bookId]?.findIndex(chapter => chapter.id === chapterIdValue) ?? -1
+    if (chapterIndex >= 0) book.lastChapterIndex = chapterIndex
     book.lastOffset = Math.max(0, Math.round(Number.isFinite(offset) ? offset : 0))
     book.updatedAt = Date.now()
     await this.persist()

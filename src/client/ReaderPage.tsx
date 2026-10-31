@@ -731,7 +731,6 @@ export function createReaderPage(ctx: Context): () => ReactNode {
     }, [toc, tocSearch])
     const previewConfidence = preview?.confidence === 'high' ? '解析完整'
       : preview?.confidence === 'medium' ? '解析可用' : '解析较弱'
-    const primaryBook = books[0]
 
     return (
       <div className={`nr-root ${themeClass}`}>
@@ -863,45 +862,17 @@ export function createReaderPage(ctx: Context): () => ReactNode {
                       <h1 className="nr-shelf-title">书架</h1>
                       <span>{books.length} 本</span>
                     </header>
-                    {primaryBook !== undefined && (
-                      <section className={`nr-continue${justAdded === primaryBook.id ? ' just-added' : ''}`}>
-                        <button className="nr-continue-open" onClick={() => { void openBook(primaryBook) }} disabled={busy}>
-                          <Cover title={primaryBook.title} url={primaryBook.coverUrl} className="nr-cover-continue" eager />
-                          <span className="nr-continue-copy">
-                            <span className="nr-continue-kicker">继续阅读</span>
-                            <span className="nr-continue-title" title={primaryBook.title}>{primaryBook.title}</span>
-                            <span className="nr-continue-meta">{primaryBook.author} · {primaryBook.chapterCount} 章</span>
-                            <span className="nr-continue-progress">{primaryBook.lastChapterId === undefined ? '尚未开始' : '上次阅读'} · {primaryBook.sourceHost}</span>
-                          </span>
-                          <span className="nr-continue-action">继续阅读 <Icon name="right" /></span>
-                        </button>
-                        <button
-                          className="nr-icon-button nr-continue-delete"
-                          onClick={() => setPendingDelete(primaryBook.id)}
-                          title="从书架删除"
-                          aria-label={`删除《${primaryBook.title}》`}
-                        >
-                          <Icon name="trash" />
-                        </button>
-                        {pendingDelete === primaryBook.id && (
-                          <div className="nr-continue-confirm">
-                            <span>删除《{primaryBook.title}》？</span>
-                            <div>
-                              <button className="nr-mini-button" onClick={() => setPendingDelete(null)}>取消</button>
-                              <button className="nr-mini-button danger" onClick={() => { void remove(primaryBook) }} disabled={busy}>删除</button>
-                            </div>
-                          </div>
-                        )}
-                      </section>
-                    )}
-
-                    <section className="nr-other-books">
-                      <div className="nr-shelf-section-head">
-                        <h2>全部书架</h2>
-                        <span>{books.length} 本</span>
-                      </div>
-                      <ul className="nr-shelf-grid">
-                        {books.map(book => (
+                    <ul className="nr-shelf-grid">
+                      {books.map(book => {
+                        const total = Math.max(0, book.chapterCount)
+                        const index = book.lastChapterIndex
+                        const percent = index !== undefined && total > 0
+                          ? Math.min(100, Math.max(0, ((index + 1) / total) * 100))
+                          : 0
+                        const progressText = index !== undefined
+                          ? `第 ${index + 1} 章 / 共 ${total} 章`
+                          : book.lastChapterId === undefined ? '尚未开始' : '上次阅读'
+                        return (
                           <li
                             key={book.id}
                             className={`nr-shelf-card${justAdded === book.id ? ' just-added' : ''}`}
@@ -915,10 +886,11 @@ export function createReaderPage(ctx: Context): () => ReactNode {
                               <span className="nr-shelf-card-copy">
                                 <span className="nr-shelf-card-title" title={book.title}>{book.title}</span>
                                 <span className="nr-shelf-card-author">{book.author}</span>
-                                <span className="nr-shelf-card-meta" title={book.sourceHost}>
-                                  <span>{book.chapterCount} 章</span>
-                                  <span className="nr-status-sep" />
-                                  <span>{book.sourceHost}</span>
+                                <span className="nr-shelf-progress">
+                                  <span className="nr-shelf-progress-label">{progressText}</span>
+                                  <span className="nr-shelf-progress-track">
+                                    <span className="nr-shelf-progress-fill" style={{ width: `${percent}%` }} />
+                                  </span>
                                 </span>
                               </span>
                             </button>
@@ -940,9 +912,9 @@ export function createReaderPage(ctx: Context): () => ReactNode {
                               </div>
                             )}
                           </li>
-                        ))}
-                      </ul>
-                    </section>
+                        )
+                      })}
+                    </ul>
                   </div>
                 )}
           </div>
@@ -1161,12 +1133,15 @@ export function createReaderPage(ctx: Context): () => ReactNode {
           <div className={`nr-page nr-page-search nr-scroll${!searchBusy && !searchDone && searchResults.length === 0 ? ' nr-page-idle' : ''}`}>
             <div className="nr-page-inner">
               {!searchBusy && !searchDone && searchResults.length === 0 && (
-                <section className={`nr-search-landing${books.length === 0 ? ' no-recent' : ''}`} aria-label="书库搜索说明">
+                <section className="nr-search-landing" aria-label="书库搜索说明">
                   <div className="nr-search-main-top">
-                      <h2 className="nr-landing-title">
-                        {enabledSourceNames.length === 0 ? '没有启用的书库' : `${enabledSourceNames.length} 个书库，一起找`}
-                      </h2>
-                      <p className="nr-landing-deck">按书名同时搜索已启用的书库。同一本书的不同来源会合并成一条结果，先看目录，再决定收藏。</p>
+                    <h2 className="nr-landing-title">想读什么？</h2>
+                    <p className="nr-landing-deck">
+                      {enabledSourceNames.length === 0
+                        ? '先去设置里启用一个书库。'
+                        : '输入书名或作者，在已启用的书库里找。'}
+                    </p>
+                    {enabledSourceNames.length > 0 && (
                       <div className="nr-suggestions">
                         <span>试试</span>
                         {SEARCH_SUGGESTIONS.map(name => (
@@ -1181,49 +1156,8 @@ export function createReaderPage(ctx: Context): () => ReactNode {
                           </button>
                         ))}
                       </div>
-                    </div>
-
-                    {books.length > 0 && (
-                      <section className="nr-search-recent" aria-label="继续阅读">
-                        <div className="nr-recent-head">
-                          <h2>继续阅读</h2>
-                          <button type="button" className="nr-recent-all" onClick={() => setView('shelf')}>全部书架</button>
-                        </div>
-                        <div className="nr-recent-list">
-                          {books.slice(0, 4).map(book => (
-                            <button
-                              key={book.id}
-                              type="button"
-                              className="nr-recent-book"
-                              onClick={() => { void openBook(book) }}
-                              disabled={busy}
-                            >
-                              <Cover title={book.title} url={book.coverUrl} />
-                              <span className="nr-recent-copy">
-                                <span className="nr-recent-title">{book.title}</span>
-                                <span className="nr-recent-author">{book.author}</span>
-                                <span className="nr-recent-progress">{book.lastChapterId === undefined ? '未开始' : '继续上次阅读'}</span>
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      </section>
                     )}
-
-                  <aside className="nr-catalog">
-                    <div className="nr-catalog-head">
-                      <span>已接入</span>
-                      <span>{enabledSourceNames.length} 个书库</span>
-                    </div>
-                    <ul className="nr-source-list">
-                      {enabledSourceNames.length === 0
-                        ? <li className="nr-source-empty">所有书源已关闭</li>
-                        : sourceSettings.filter(source => source.enabled).map(source => (
-                            <li key={source.id}>{source.name}</li>
-                          ))}
-                    </ul>
-                    <p className="nr-catalog-note">同一本书会在多个书库之间合并；解析失败会自动换下一个来源。</p>
-                  </aside>
+                  </div>
                 </section>
               )}
 

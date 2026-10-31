@@ -518,6 +518,7 @@ export default class RelaxReaderService extends TypertRemoteService {
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
         lastChapterId: lastChapterExists ? existing?.lastChapterId : chapters[0]?.id,
+        lastChapterIndex: lastChapterExists ? existing?.lastChapterIndex ?? 0 : 0,
         lastOffset: lastChapterExists ? existing?.lastOffset ?? 0 : 0,
       }
       await this.store.upsertBookWithToc(book, chapters)
