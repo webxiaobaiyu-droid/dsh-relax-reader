@@ -41,6 +41,7 @@ const _dsh_relax_reader_relaxReader_listBooks_result$schema = () => (_dsh_relax_
   'createdAt': z.number(),
   'updatedAt': z.number(),
   'lastChapterId': z.union([z.undefined(), z.string()]).optional(),
+  'lastChapterIndex': z.number().optional(),
   'lastOffset': z.number().optional(),
 })))
 let _dsh_relax_reader_relaxReader_parseUrl_parameter_0$schema$value
@@ -107,6 +108,7 @@ const _dsh_relax_reader_relaxReader_saveBook_result$schema = () => (_dsh_relax_r
   'createdAt': z.number(),
   'updatedAt': z.number(),
   'lastChapterId': z.union([z.undefined(), z.string()]).optional(),
+  'lastChapterIndex': z.number().optional(),
   'lastOffset': z.number().optional(),
 }))
 let _dsh_relax_reader_relaxReader_saveProgress_parameter_0$schema$value

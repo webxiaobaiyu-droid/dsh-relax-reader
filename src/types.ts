@@ -139,4 +139,5 @@ export const SOURCE_CATALOG: readonly SourceOption[] = [
   { id: 'jiuai', name: '就爱文学', detail: '静态书库 · 搜索与完整目录' },
   { id: 'ruoyu', name: '若雨中文', detail: '静态书库 · 搜索与完整目录' },
   { id: 'tangsan', name: '唐三中文', detail: '静态书库 · 搜索与完整目录' },
+  { id: '136book', name: '136书屋', detail: '静态书库 · 目录与正文' },
 ] as const

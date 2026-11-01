@@ -8,6 +8,7 @@ import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 import type { Book, ChapterContent, ChapterRef, EditionsResponse, ParsePreview, SearchResponse, SearchResult, SettingsResponse, SourceEdition } from '../types.ts'
 import { EDITIONS_PATH, SEARCH_PATH, SETTINGS_PATH, SOURCE_CATALOG } from '../types.ts'
 import { STYLE_ID, styles } from './styles.ts'
+import { proseParagraphs } from './prose.ts'
 
 type View = 'shelf' | 'add' | 'search' | 'reader' | 'settings'
 type Theme = 'auto' | 'light' | 'sepia' | 'dark'
@@ -179,6 +180,44 @@ function store(key: string, value: string): void {
   }
 }
 
+/** The reading position remembered across main-panel switches and reloads. */
+interface ReadingSession {
+  bookId: string
+  chapterId: string
+  offset: number
+}
+
+/** Read the saved reading position, ignoring malformed values. */
+function readReadingSession(): ReadingSession | null {
+  try {
+    const raw = readPreference('reading')
+    if (raw === null || raw.trim() === '') return null
+    const value = JSON.parse(raw) as { bookId?: unknown; chapterId?: unknown; offset?: unknown }
+    if (typeof value.bookId !== 'string' || typeof value.chapterId !== 'string') return null
+    const offset = typeof value.offset === 'number' && Number.isFinite(value.offset)
+      ? Math.max(0, value.offset)
+      : 0
+    return { bookId: value.bookId, chapterId: value.chapterId, offset }
+  } catch {
+    return null
+  }
+}
+
+/** Remember the current reading position synchronously. */
+function saveReadingSession(session: ReadingSession): void {
+  store('dsh-relax-reader.reading', JSON.stringify(session))
+}
+
+/** Leave reader mode without auto-resuming it on the next mount. */
+function clearReadingSession(): void {
+  try {
+    localStorage.removeItem('dsh-relax-reader.reading')
+    localStorage.removeItem('novel-reader.reading')
+  } catch {
+    // Storage is a convenience; navigation still works.
+  }
+}
+
 /** Inject the plugin stylesheet once; the owner removes it when unmounted. */
 function useStyles(): void {
   useEffect(() => {
@@ -288,6 +327,10 @@ export function createReaderPage(ctx: Context): () => ReactNode {
     const highlightTimer = useRef<number | undefined>(undefined)
     const pendingOffset = useRef(0)
     const lastOffset = useRef(0)
+    const progressIndexes = useRef(new Map<string, number>())
+    const prefetchedChapters = useRef(new Set<string>())
+    const refreshed = useRef(false)
+    const restored = useRef(false)
     const liveReading = useRef<{ bookId?: string; chapterId?: string }>({})
     const operation = useRef(0)
 
@@ -295,13 +338,57 @@ export function createReaderPage(ctx: Context): () => ReactNode {
 
     const refresh = useCallback(async (): Promise<void> => {
       try {
-        setBooks(await invoke(signal => remote.listBooks(signal)))
+        const listed = await invoke(signal => remote.listBooks(signal))
+        const known = progressIndexes.current
+        setBooks(listed.map(book => {
+          if (book.lastChapterIndex !== undefined || book.lastChapterId === undefined) return book
+          const index = known.get(book.id)
+          return index === undefined ? book : { ...book, lastChapterIndex: index }
+        }))
+        // Older host builds may not have backfilled lastChapterIndex yet. Resolve
+        // it in the background from the cached table of contents, once per book.
+        const pending = listed.filter(book => book.lastChapterIndex === undefined && book.lastChapterId !== undefined && !known.has(book.id))
+        if (pending.length === 0) return
+        const chapterIndexes = new Map<string, number>()
+        await Promise.all(pending.map(async book => {
+          try {
+            const chapters = await invoke(signal => remote.getToc({ bookId: book.id }, signal))
+            const index = chapters.findIndex(chapter => chapter.id === book.lastChapterId)
+            if (index >= 0) {
+              chapterIndexes.set(book.id, index)
+              known.set(book.id, index)
+            }
+          } catch {
+            // A missing cache should not block the rest of the shelf.
+          }
+        }))
+        if (chapterIndexes.size === 0) return
+        setBooks(previous => previous.map(book => {
+          const index = chapterIndexes.get(book.id)
+          return index === undefined ? book : { ...book, lastChapterIndex: index }
+        }))
       } catch (cause: unknown) {
         setError(errorMessage(cause))
       }
     }, [remote])
 
-    useEffect(() => { void refresh() }, [refresh])
+    useEffect(() => {
+      if (refreshed.current) return
+      refreshed.current = true
+      void refresh()
+    }, [refresh])
+    useEffect(() => {
+      if (restored.current || books.length === 0 || view !== 'shelf') return
+      restored.current = true
+      const session = readReadingSession()
+      if (session === null) return
+      const book = books.find(item => item.id === session.bookId)
+      if (book === undefined) {
+        clearReadingSession()
+        return
+      }
+      void openBook(book, { chapterId: session.chapterId, offset: session.offset })
+    }, [books])
     useEffect(() => { void loadSettings() }, [])
     useEffect(() => { store('dsh-relax-reader.fontSize', String(fontSize)) }, [fontSize])
     useEffect(() => { store('dsh-relax-reader.theme', theme) }, [theme])
@@ -320,6 +407,7 @@ export function createReaderPage(ctx: Context): () => ReactNode {
         window.clearTimeout(highlightTimer.current)
         const reading = liveReading.current
         if (reading.bookId !== undefined && reading.chapterId !== undefined) {
+          saveReadingSession({ bookId: reading.bookId, chapterId: reading.chapterId, offset: lastOffset.current })
           void invoke(signal => remote.saveProgress({
             bookId: reading.bookId as string,
             chapterId: reading.chapterId as string,
@@ -338,6 +426,54 @@ export function createReaderPage(ctx: Context): () => ReactNode {
         pendingOffset.current = 0
       }
     }, [chapter])
+
+    useEffect(() => {
+      if (currentBook === null || chapter === null) return
+      const index = toc.findIndex(item => item.id === chapter.id)
+      if (index < 0) return
+      const bookId = currentBook.id
+      const targets = toc
+        .slice(index + 1, index + 4)
+        .filter(item => !prefetchedChapters.current.has(`${bookId}:${item.id}`))
+      if (targets.length === 0) return
+
+      const controller = new AbortController()
+      const idleWindow = window as typeof window & {
+        requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
+        cancelIdleCallback?: (handle: number) => void
+      }
+      let cancelled = false
+      let idleHandle: number | undefined
+      let startTimer: number | undefined
+
+      const run = async (): Promise<void> => {
+        for (const target of targets) {
+          if (cancelled) return
+          try {
+            const result = await remote.getChapter({ bookId, chapterId: target.id }, controller.signal)
+            if (!result.ok) return
+            prefetchedChapters.current.add(`${bookId}:${target.id}`)
+          } catch {
+            return
+          }
+          // Space requests out instead of hammering a source when it is slow.
+          await new Promise<void>(resolve => { window.setTimeout(resolve, 300) })
+        }
+      }
+
+      if (idleWindow.requestIdleCallback !== undefined) {
+        idleHandle = idleWindow.requestIdleCallback(() => { void run() }, { timeout: 2500 })
+      } else {
+        startTimer = window.setTimeout(() => { void run() }, 1200)
+      }
+
+      return () => {
+        cancelled = true
+        controller.abort()
+        if (idleHandle !== undefined) idleWindow.cancelIdleCallback?.(idleHandle)
+        if (startTimer !== undefined) window.clearTimeout(startTimer)
+      }
+    }, [currentBook?.id, chapter?.id, toc, remote])
 
     useEffect(() => {
       if (!showToc) return
@@ -365,12 +501,14 @@ export function createReaderPage(ctx: Context): () => ReactNode {
       lastOffset.current = offset
       const bookId = currentBook.id
       const chapterId = chapter.id
+      const chapterIndex = toc.findIndex(item => item.id === chapterId)
+      saveReadingSession({ bookId, chapterId, offset })
       const updatedAt = Date.now()
       setCurrentBook(value => value !== null && value.id === bookId
-        ? { ...value, lastChapterId: chapterId, lastOffset: offset, updatedAt }
+        ? { ...value, lastChapterId: chapterId, ...(chapterIndex < 0 ? {} : { lastChapterIndex: chapterIndex }), lastOffset: offset, updatedAt }
         : value)
       setBooks(previous => previous.map(item => item.id === bookId
-        ? { ...item, lastChapterId: chapterId, lastOffset: offset, updatedAt }
+        ? { ...item, lastChapterId: chapterId, ...(chapterIndex < 0 ? {} : { lastChapterIndex: chapterIndex }), lastOffset: offset, updatedAt }
         : item))
       return invoke(signal => remote.saveProgress({ bookId, chapterId, offset }, signal))
         .then(() => {})
@@ -558,6 +696,8 @@ export function createReaderPage(ctx: Context): () => ReactNode {
     function returnToShelf(): void {
       window.clearTimeout(saveTimer.current)
       const pendingSave = saveNow()
+      liveReading.current = {}
+      clearReadingSession()
       operation.current += 1
       setBusy(false)
       setView('shelf')
@@ -629,6 +769,7 @@ export function createReaderPage(ctx: Context): () => ReactNode {
 
     async function remove(book: Book): Promise<void> {
       if (busy) return
+      if (readReadingSession()?.bookId === book.id) clearReadingSession()
       setBusy(true)
       setError(null)
       try {
@@ -642,7 +783,7 @@ export function createReaderPage(ctx: Context): () => ReactNode {
       }
     }
 
-    async function openBook(book: Book): Promise<void> {
+    async function openBook(book: Book, resume?: { chapterId?: string; offset?: number }): Promise<void> {
       if (busy) return
       const token = ++operation.current
       setBusy(true)
@@ -656,9 +797,13 @@ export function createReaderPage(ctx: Context): () => ReactNode {
       try {
         const chapters = await invoke(signal => remote.getToc({ bookId: book.id }, signal))
         if (token !== operation.current) return
-        const target = chapters.find(item => item.id === book.lastChapterId) ?? chapters[0]
+        const resumed = resume === undefined ? undefined : chapters.find(item => item.id === resume.chapterId)
+        const target = resumed ?? chapters.find(item => item.id === book.lastChapterId) ?? chapters[0]
         if (target === undefined) throw new Error('目录为空')
-        pendingOffset.current = target.id === book.lastChapterId ? book.lastOffset ?? 0 : 0
+        pendingOffset.current = resumed === undefined
+          ? target.id === book.lastChapterId ? book.lastOffset ?? 0 : 0
+          : Math.max(0, resume?.offset ?? 0)
+        saveReadingSession({ bookId: book.id, chapterId: target.id, offset: pendingOffset.current })
         setToc(chapters)
         const next = await invoke(signal => remote.getChapter({ bookId: book.id, chapterId: target.id }, signal))
         if (token !== operation.current) return
@@ -666,6 +811,7 @@ export function createReaderPage(ctx: Context): () => ReactNode {
       } catch (cause: unknown) {
         if (token !== operation.current) return
         setError(errorMessage(cause))
+        if (resume !== undefined) clearReadingSession()
         setView('shelf')
         setCurrentBook(null)
       } finally {
@@ -689,11 +835,13 @@ export function createReaderPage(ctx: Context): () => ReactNode {
         const next = await invoke(signal => remote.getChapter({ bookId: book.id, chapterId }, signal))
         if (token !== operation.current) return
         setChapter(next)
+        saveReadingSession({ bookId: book.id, chapterId: next.id, offset: Math.max(0, offset) })
+        const nextIndex = toc.findIndex(item => item.id === next.id)
         setCurrentBook(previous => previous !== null && previous.id === book.id
-          ? { ...previous, lastChapterId: next.id, lastOffset: 0, updatedAt: Date.now() }
+          ? { ...previous, lastChapterId: next.id, ...(nextIndex < 0 ? {} : { lastChapterIndex: nextIndex }), lastOffset: 0, updatedAt: Date.now() }
           : previous)
         setBooks(previous => previous.map(item => item.id === book.id
-          ? { ...item, lastChapterId: next.id, lastOffset: 0, updatedAt: Date.now() }
+          ? { ...item, lastChapterId: next.id, ...(nextIndex < 0 ? {} : { lastChapterIndex: nextIndex }), lastOffset: 0, updatedAt: Date.now() }
           : item))
         void invoke(signal => remote.saveProgress({ bookId: book.id, chapterId: next.id, offset: 0 }, signal)).catch(() => {})
       } catch (cause: unknown) {
@@ -714,6 +862,7 @@ export function createReaderPage(ctx: Context): () => ReactNode {
       saveTimer.current = window.setTimeout(() => {
         const offset = scrollRef.current?.scrollTop ?? lastOffset.current
         lastOffset.current = offset
+        saveReadingSession({ bookId, chapterId, offset })
         void invoke(signal => remote.saveProgress({ bookId, chapterId, offset }, signal)).catch(() => {})
       }, 550)
     }
@@ -802,7 +951,7 @@ export function createReaderPage(ctx: Context): () => ReactNode {
             </button>
             <div className="nr-searchbar-heading">
               <h1 className="nr-searchbar-title">添加小说</h1>
-              <span className="nr-searchbar-sub">支持 5 个站点</span>
+              <span className="nr-searchbar-sub">支持 {sourceSettings.length} 个站点</span>
             </div>
             <form className="nr-topbar-search" onSubmit={(event) => { event.preventDefault(); void parse() }}>
               <Icon name="book" />
@@ -869,9 +1018,13 @@ export function createReaderPage(ctx: Context): () => ReactNode {
                         const percent = index !== undefined && total > 0
                           ? Math.min(100, Math.max(0, ((index + 1) / total) * 100))
                           : 0
-                        const progressText = index !== undefined
-                          ? `第 ${index + 1} 章 / 共 ${total} 章`
-                          : book.lastChapterId === undefined ? '尚未开始' : '上次阅读'
+                        const hasProgress = index !== undefined && total > 0
+                        const finished = hasProgress && index + 1 >= total
+                        const percentLabel = percent > 0 && percent < 1 ? '<1%' : `${Math.round(percent)}%`
+                        const progressKicker = book.lastChapterId === undefined
+                          ? '未开始'
+                          : finished ? '已读完' : hasProgress ? '读到' : '上次阅读'
+                        const status = book.lastChapterId === undefined ? '未读' : finished ? '读完' : '续读'
                         return (
                           <li
                             key={book.id}
@@ -881,13 +1034,23 @@ export function createReaderPage(ctx: Context): () => ReactNode {
                             <button className="nr-shelf-card-open" onClick={() => { void openBook(book) }} disabled={busy}>
                               <span className="nr-shelf-cover">
                                 <Cover title={book.title} url={book.coverUrl} className="nr-cover-card" />
-                                <span className="nr-card-badge">{book.lastChapterId === undefined ? '未读' : '续读'}</span>
+                                <span className="nr-card-badge">{status}</span>
                               </span>
                               <span className="nr-shelf-card-copy">
                                 <span className="nr-shelf-card-title" title={book.title}>{book.title}</span>
                                 <span className="nr-shelf-card-author">{book.author}</span>
                                 <span className="nr-shelf-progress">
-                                  <span className="nr-shelf-progress-label">{progressText}</span>
+                                  <span className="nr-shelf-progress-head">
+                                    <span className="nr-shelf-progress-label">{progressKicker}</span>
+                                    {hasProgress && (
+                                      <span className="nr-shelf-progress-value">{percentLabel}</span>
+                                    )}
+                                  </span>
+                                  {index !== undefined && total > 0 && (
+                                    <span className="nr-shelf-progress-chapter" title={`第 ${index + 1} 章 / 共 ${total} 章`}>
+                                      第 {index + 1} 章 <span>共 {total} 章</span>
+                                    </span>
+                                  )}
                                   <span className="nr-shelf-progress-track">
                                     <span className="nr-shelf-progress-fill" style={{ width: `${percent}%` }} />
                                   </span>
@@ -1251,46 +1414,106 @@ export function createReaderPage(ctx: Context): () => ReactNode {
             </header>
 
 
-            <div
-              ref={scrollRef}
-              className="nr-reader-scroll nr-scroll"
-              style={{ fontSize: `${fontSize}px`, '--nr-leading': String(lineHeight) } as CSSProperties}
-              onScroll={onScroll}
-            >
-              {chapterError !== null
-                ? (
-                    <div className="nr-reader-error" role="alert">
-                      <p>{chapterError}</p>
-                      <button
-                        className="nr-primary"
-                        onClick={() => {
-                          if (currentBook !== null && failedChapterId !== null) {
-                            void loadChapter(currentBook, failedChapterId, 0)
-                          }
-                        }}
-                      >重试</button>
-                    </div>
-                  )
-                : chapter === null
+            <div className="nr-reader-body">
+              <div
+                ref={scrollRef}
+                className="nr-reader-scroll nr-scroll"
+                style={{ fontSize: `${fontSize}px`, '--nr-leading': String(lineHeight) } as CSSProperties}
+                onScroll={onScroll}
+              >
+                {chapterError !== null
                   ? (
-                      <div className="nr-loading">
-                        <span className="nr-spinner" />
-                        <span>正在翻开这一章…</span>
+                      <div className="nr-reader-error" role="alert">
+                        <p>{chapterError}</p>
+                        <button
+                          className="nr-primary"
+                          onClick={() => {
+                            if (currentBook !== null && failedChapterId !== null) {
+                              void loadChapter(currentBook, failedChapterId, 0)
+                            }
+                          }}
+                        >重试</button>
                       </div>
                     )
-                  : (
-                      <article className="nr-article">
-                        <p className="nr-chapter-position">
-                          {activeIndex >= 0 ? `第 ${activeIndex + 1} 章` : ''}
-                        </p>
-                        <h1 className="nr-chapter-title">{chapter.title}</h1>
-                        <div className="nr-prose">
-                          {chapter.content.split(/\n{2,}|\n/).filter(paragraph => paragraph.trim() !== '').map((paragraph, index) => (
-                            <p key={index}>{paragraph}</p>
-                          ))}
+                  : chapter === null
+                    ? (
+                        <div className="nr-loading">
+                          <span className="nr-spinner" />
+                          <span>正在翻开这一章…</span>
                         </div>
-                      </article>
-                    )}
+                      )
+                    : (
+                        <article className="nr-article">
+                          <p className="nr-chapter-position">
+                            {activeIndex >= 0 ? `第 ${activeIndex + 1} 章` : ''}
+                          </p>
+                          <h1 className="nr-chapter-title">{chapter.title}</h1>
+                          <div className="nr-prose">
+                            {proseParagraphs(chapter.content).map((paragraph, index) => (
+                              <p key={index}>{paragraph}</p>
+                            ))}
+                          </div>
+                        </article>
+                      )}
+              </div>
+
+              {showToc && (
+                <aside className="nr-toc" aria-label="章节目录">
+                  <header className="nr-toc-head">
+                    <div className="nr-toc-heading">
+                      <strong>目录</strong>
+                      <span title={currentBook.title}>{currentBook.title}</span>
+                    </div>
+                    <button className="nr-icon-button" onClick={() => setShowToc(false)} title="关闭目录" aria-label="关闭目录" autoFocus={toc.length <= 8}>
+                      <Icon name="close" />
+                    </button>
+                  </header>
+                  <div className="nr-toc-progress">
+                    <div className="nr-toc-progress-line">
+                      <span>{activeIndex >= 0 ? `第 ${activeIndex + 1} 章 / 共 ${toc.length} 章` : `共 ${toc.length} 章`}</span>
+                      <span>{Math.round(progress)}%</span>
+                    </div>
+                    <span className="nr-toc-progress-track" aria-hidden="true">
+                      <span className="nr-toc-progress-fill" style={{ width: `${progress}%` }} />
+                    </span>
+                  </div>
+                  {toc.length > 8 && (
+                    <div className="nr-toc-search">
+                      <div className="nr-search-wrap">
+                        <Icon name="search" />
+                        <input
+                          className="nr-input"
+                          value={tocSearch}
+                          onChange={event => setTocSearch(event.target.value)}
+                          placeholder="查找章节"
+                          autoFocus
+                          spellCheck={false}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <ol className="nr-toc-list nr-scroll" ref={tocListRef}>
+                    {filteredToc.map(item => {
+                      const index = chapterIndexById.get(item.id) ?? 0
+                      return (
+                        <li key={item.id}>
+                          <button
+                            className={`nr-toc-row${item.id === chapter?.id ? ' active' : ''}`}
+                            data-active={item.id === chapter?.id}
+                            onClick={() => {
+                              if (currentBook !== null) void loadChapter(currentBook, item.id)
+                            }}
+                          >
+                            <span className="nr-toc-index">{String(index + 1).padStart(2, '0')}</span>
+                            <span className="nr-toc-name">{item.title}</span>
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ol>
+                  {filteredToc.length === 0 && <p className="nr-toc-empty">没有匹配的章节</p>}
+                </aside>
+              )}
             </div>
 
             <nav className="nr-reader-nav" aria-label="章节导航">
@@ -1314,54 +1537,6 @@ export function createReaderPage(ctx: Context): () => ReactNode {
               </button>
             </nav>
 
-            {showToc && (
-              <div className="nr-toc" role="dialog" aria-modal="true" aria-label="章节目录">
-                <header className="nr-toc-head">
-                  <div className="nr-toc-heading">
-                    <strong>目录</strong>
-                    <span>{toc.length} 章 · {currentBook.title}</span>
-                  </div>
-                  <button className="nr-icon-button" onClick={() => setShowToc(false)} title="关闭目录" aria-label="关闭目录" autoFocus={toc.length <= 8}>
-                    <Icon name="close" />
-                  </button>
-                </header>
-                {toc.length > 8 && (
-                  <div className="nr-toc-search">
-                    <div className="nr-search-wrap">
-                      <Icon name="search" />
-                      <input
-                        className="nr-input"
-                        value={tocSearch}
-                        onChange={event => setTocSearch(event.target.value)}
-                        placeholder="查找章节"
-                        autoFocus
-                        spellCheck={false}
-                      />
-                    </div>
-                  </div>
-                )}
-                <ol className="nr-toc-list nr-scroll" ref={tocListRef}>
-                  {filteredToc.map(item => {
-                    const index = chapterIndexById.get(item.id) ?? 0
-                    return (
-                      <li key={item.id}>
-                        <button
-                          className={`nr-toc-row${item.id === chapter?.id ? ' active' : ''}`}
-                          data-active={item.id === chapter?.id}
-                          onClick={() => {
-                            if (currentBook !== null) void loadChapter(currentBook, item.id)
-                          }}
-                        >
-                          <span className="nr-toc-index">{String(index + 1).padStart(2, '0')}</span>
-                          <span className="nr-toc-name">{item.title}</span>
-                        </button>
-                      </li>
-                    )
-                  })}
-                </ol>
-                {filteredToc.length === 0 && <p className="nr-toc-empty">没有匹配的章节</p>}
-              </div>
-            )}
           </div>
         )}
             {settingsOpen && (

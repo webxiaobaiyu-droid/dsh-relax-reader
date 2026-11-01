@@ -23,6 +23,7 @@ describe('source registry', () => {
     expect(findSource('http://www.92xs.info/book/1505.html')?.id).toBe('jiuai')
     expect(findSource('http://www.3yt.la/Book/53328/index.html')?.id).toBe('ruoyu')
     expect(findSource('http://www.xtangsanshu.com/jianlai/')?.id).toBe('tangsan')
+    expect(findSource('https://www.136book.com/douluodalu/')?.id).toBe('136book')
     expect(findSource('https://example.com/book/1')).toBeUndefined()
     expect(findSource('not a url')).toBeUndefined()
   })
@@ -50,6 +51,11 @@ describe('source registry', () => {
       kind: 'chapter',
       bookUrl: 'http://www.xtangsanshu.info/jianlai/',
       chapterUrl: 'http://www.xtangsanshu.info/jianlai/51663364.html',
+    })
+    expect(sourceTarget(source('136book'), 'https://www.136book.com/douluodalu/qlgbazt/')).toEqual({
+      kind: 'chapter',
+      bookUrl: 'https://www.136book.com/douluodalu/',
+      chapterUrl: 'https://www.136book.com/douluodalu/qlgbazt/',
     })
   })
 })
@@ -110,6 +116,16 @@ describe('parseTocPage', () => {
     const chapters = parseTocPage(source('ruoyu'), html, 'http://www.3yt.info/Html/Book/53/53328/Index.shtml')
     expect(chapters).toHaveLength(1)
     expect(chapters[0]?.url).toBe('http://www.3yt.info/Html/Book/53/53328/1.shtml')
+  })
+
+  it('puts the 136book first-chapter block before its latest block', () => {
+    const html = `<div id="book_detail"><ol>
+      <li><a href="/douluodalu/last/">第2章 结尾</a></li>
+    </ol><ol>
+      <li><a href="/douluodalu/first/">第1章 开始</a></li>
+    </ol></div>`
+    const chapters = parseTocPage(source('136book'), html, 'https://www.136book.com/douluodalu/')
+    expect(chapters.map(chapter => chapter.title)).toEqual(['第1章 开始', '第2章 结尾'])
   })
 })
 

@@ -394,8 +394,8 @@ export const styles = String.raw`
 .nr-shelf-titlebar {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
+  justify-content: flex-start;
+  gap: 10px;
   padding-bottom: 2px;
 }
 
@@ -409,14 +409,19 @@ export const styles = String.raw`
 }
 
 .nr-shelf-titlebar span {
+  padding: 2px 9px;
+  border: 1px solid var(--nr-line);
+  border-radius: 999px;
+  background: var(--nr-paper);
   color: var(--nr-faint);
-  font-size: 10.5px;
+  font-size: 10px;
+  line-height: 1.6;
 }
 
 .nr-shelf-stage {
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 20px;
   width: 100%;
   max-width: 1300px;
   margin: 0 auto;
@@ -784,7 +789,7 @@ export const styles = String.raw`
 
 .nr-shelf-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
   align-items: stretch;
   gap: 16px;
   width: 100%;
@@ -801,23 +806,26 @@ export const styles = String.raw`
   padding: 10px;
   overflow: hidden;
   border: 1px solid var(--nr-line);
-  border-radius: 8px;
-  background: var(--nr-surface);
-  transition: border-color 140ms ease, background-color 140ms ease;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--nr-raised) 58%, transparent);
+  box-shadow: 0 1px 2px rgba(32, 36, 31, 0.04);
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
 }
 
 .nr-shelf-card:hover,
 .nr-shelf-card:focus-within {
-  border-color: var(--nr-accent);
-  background: color-mix(in srgb, var(--nr-surface) 88%, var(--nr-accent) 4%);
+  border-color: color-mix(in srgb, var(--nr-accent) 45%, var(--nr-line));
+  background: color-mix(in srgb, var(--nr-raised) 78%, transparent);
+  box-shadow: 0 12px 28px -20px rgba(32, 36, 31, 0.55);
 }
 
 .nr-shelf-card-open {
   appearance: none;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
+  height: 100%;
   min-width: 0;
   padding: 0;
   border: 0;
@@ -836,55 +844,61 @@ export const styles = String.raw`
   position: relative;
   display: block;
   flex: none;
-  width: 52px;
-  height: 78px;
+  width: 78px;
+  height: auto;
+  aspect-ratio: 2 / 3;
   overflow: hidden;
+  border-radius: 3px 6px 6px 3px;
+  box-shadow: 0 9px 18px -12px rgba(32, 36, 31, 0.55);
+  transition: box-shadow 180ms ease;
 }
 
 .nr-shelf-card .nr-cover-card {
   width: 100%;
   height: 100%;
-  border-left-width: 2px;
-  border-radius: 2px 4px 4px 2px;
-  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.1);
-  transition: transform 160ms ease, box-shadow 160ms ease;
+  border-left-width: 3px;
+  border-radius: 3px 6px 6px 3px;
+  box-shadow: none;
 }
 
 .nr-shelf-card .nr-cover-card img {
   object-position: top center;
 }
 
-.nr-shelf-card-open:hover .nr-cover-card,
-.nr-shelf-card-open:focus-visible .nr-cover-card {
-  transform: translateY(-1px);
-  box-shadow: 0 9px 18px rgba(0, 0, 0, 0.14);
+.nr-shelf-card-open:hover .nr-shelf-cover,
+.nr-shelf-card-open:focus-visible .nr-shelf-cover {
+  box-shadow: 0 13px 24px -13px rgba(32, 36, 31, 0.62);
 }
 
 .nr-shelf-card .nr-cover-card .nr-cover-glyph {
-  font-size: 18px;
+  font-size: 24px;
 }
 
 .nr-card-badge {
   position: absolute;
-  left: 4px;
-  bottom: 4px;
+  top: 6px;
+  left: 6px;
   z-index: 2;
-  padding: 1px 4px;
-  border-radius: 2px;
-  background: rgba(18, 20, 20, 0.68);
-  color: #fff;
-  font-size: 7px;
-  line-height: 1.2;
+  bottom: auto;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(247, 245, 239, 0.92);
+  color: #3c463f;
+  font-size: 7.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.03em;
+  box-shadow: 0 1px 4px rgba(32, 36, 31, 0.12);
   pointer-events: none;
 }
 
 .nr-shelf-card-copy {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  min-width: 0;
+  gap: 3px;
   align-self: stretch;
-  padding: 1px 0;
+  min-width: 0;
+  padding: 3px 0;
 }
 
 .nr-shelf-card-title {
@@ -892,7 +906,7 @@ export const styles = String.raw`
   min-width: 0;
   color: var(--nr-ink);
   font-family: var(--nr-serif);
-  font-size: 13.5px;
+  font-size: 15px;
   font-weight: 600;
   line-height: 1.35;
   white-space: nowrap;
@@ -907,7 +921,7 @@ export const styles = String.raw`
 .nr-shelf-card-author {
   display: block;
   color: var(--nr-soft);
-  font-size: 10px;
+  font-size: 10.5px;
   line-height: 1.4;
   white-space: nowrap;
   overflow: hidden;
@@ -917,8 +931,16 @@ export const styles = String.raw`
 .nr-shelf-progress {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
+  min-width: 0;
   margin-top: auto;
+}
+
+.nr-shelf-progress-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
   min-width: 0;
 }
 
@@ -931,13 +953,41 @@ export const styles = String.raw`
   text-overflow: ellipsis;
 }
 
+.nr-shelf-progress-value {
+  flex: none;
+  color: var(--nr-accent);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+
+.nr-shelf-progress-chapter {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--nr-ink);
+  font-family: var(--nr-serif);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nr-shelf-progress-chapter span {
+  color: var(--nr-faint);
+  font-family: var(--nr-sans);
+  font-size: 9px;
+  font-weight: 400;
+}
+
 .nr-shelf-progress-track {
   display: block;
   width: 100%;
   height: 2px;
   overflow: hidden;
   border-radius: 2px;
-  background: var(--nr-line);
+  background: var(--nr-line-strong);
 }
 
 .nr-shelf-progress-fill {
@@ -949,19 +999,27 @@ export const styles = String.raw`
 
 .nr-card-delete {
   position: absolute;
-  top: 5px;
-  right: 5px;
+  top: 7px;
+  right: 7px;
   z-index: 3;
-  width: 21px;
-  height: 21px;
-  border: 1px solid var(--nr-line);
-  background: var(--nr-raised);
+  width: 23px;
+  height: 23px;
+  border: 1px solid rgba(32, 36, 31, 0.12);
+  border-radius: 50%;
+  background: rgba(247, 245, 239, 0.92);
+  color: var(--nr-soft);
+  box-shadow: 0 2px 6px rgba(32, 36, 31, 0.12);
   opacity: 0;
 }
 
 .nr-shelf-card:hover .nr-card-delete,
 .nr-shelf-card:focus-within .nr-card-delete {
   opacity: 1;
+}
+
+.nr-card-delete:hover {
+  background: #fffdf8;
+  color: var(--nr-danger);
 }
 
 .nr-card-confirm {
@@ -974,7 +1032,7 @@ export const styles = String.raw`
   justify-content: center;
   gap: 8px;
   padding: 10px;
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--nr-raised);
   color: var(--nr-soft);
   font-size: 10px;
@@ -2190,8 +2248,8 @@ export const styles = String.raw`
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 52px;
-  padding: 9px 10px 8px 8px;
+  min-height: 48px;
+  padding: 7px 10px 6px 8px;
   border-bottom: 1px solid var(--nr-line);
 }
 
@@ -2236,9 +2294,12 @@ export const styles = String.raw`
 
 .nr-reader-scroll {
   flex: 1;
+  min-width: 0;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
-  padding: 27px 18px 26px;
+  padding: 20px 18px 96px;
   color: var(--nr-ink);
   font-family: var(--nr-serif);
   font-size: 17px;
@@ -2247,7 +2308,8 @@ export const styles = String.raw`
 }
 
 .nr-article {
-  max-width: 700px;
+  width: 100%;
+  max-width: 840px;
   margin: 0 auto;
 }
 
@@ -2261,11 +2323,11 @@ export const styles = String.raw`
 }
 
 .nr-chapter-title {
-  margin: 0 0 22px;
-  padding-bottom: 15px;
+  margin: 0 0 18px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--nr-line);
-  font-size: 1.2em;
-  line-height: 1.55;
+  font-size: 1.18em;
+  line-height: 1.5;
   font-weight: 600;
   letter-spacing: 0.01em;
 }
@@ -2329,29 +2391,38 @@ export const styles = String.raw`
 }
 
 .nr-reader-nav {
-  flex: none;
+  position: absolute;
+  right: 18px;
+  bottom: 16px;
+  z-index: 6;
   display: flex;
   align-items: center;
-  gap: 1px;
-  padding: 7px 8px 8px;
-  border-top: 1px solid var(--nr-line);
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid var(--nr-line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--nr-raised) 88%, transparent);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 14px 34px -16px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
 .nr-nav-button {
   appearance: none;
+  flex: none;
+  height: 34px;
   min-width: 0;
-  flex: 1;
-  height: 33px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
+  padding: 0 12px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 999px;
   background: transparent;
   color: var(--nr-soft);
   cursor: pointer;
-  font-size: 11px;
+  font-size: 11.5px;
 }
 
 .nr-nav-button:hover:not(:disabled) {
@@ -2645,28 +2716,41 @@ export const styles = String.raw`
   font-size: 9px;
 }
 
-.nr-toc {
-  position: absolute;
-  inset: 0;
-  z-index: 8;
+.nr-reader-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
   display: flex;
-  flex-direction: column;
-  background: var(--nr-raised);
-  animation: nr-reveal 150ms ease-out;
+  align-items: stretch;
 }
 
-@keyframes nr-reveal {
-  from { opacity: 0; transform: translateY(3px); }
-  to { opacity: 1; transform: translateY(0); }
+.nr-toc {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 7;
+  width: min(300px, calc(100% - 40px));
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--nr-raised);
+  box-shadow: -22px 0 55px -34px rgba(0, 0, 0, 0.42);
+  animation: nr-toc-in 180ms ease-out;
+}
+
+@keyframes nr-toc-in {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 .nr-toc-head {
   flex: none;
   display: flex;
-  align-items: center;
-  gap: 9px;
-  min-height: 52px;
-  padding: 9px 10px 8px 14px;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 18px 12px 14px 18px;
   border-bottom: 1px solid var(--nr-line);
 }
 
@@ -2678,41 +2762,104 @@ export const styles = String.raw`
 .nr-toc-heading strong {
   display: block;
   font-family: var(--nr-serif);
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 600;
+  line-height: 1.3;
 }
 
 .nr-toc-heading span {
   display: block;
-  margin-top: 1px;
+  margin-top: 3px;
+  overflow: hidden;
   color: var(--nr-faint);
+  font-size: 10px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nr-toc-head .nr-icon-button {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin-top: -2px;
+}
+
+.nr-toc-progress {
+  flex: none;
+  padding: 13px 18px 15px;
+  border-bottom: 1px solid var(--nr-line);
+}
+
+.nr-toc-progress-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--nr-faint);
+  font-family: var(--nr-sans);
   font-size: 9.5px;
+  line-height: 1.4;
+}
+
+.nr-toc-progress-line span:last-child {
+  color: var(--nr-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.nr-toc-progress-track {
+  display: block;
+  width: 100%;
+  height: 2px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--nr-line);
+}
+
+.nr-toc-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--nr-accent);
+  transition: width 200ms ease;
 }
 
 .nr-toc-search {
   flex: none;
-  padding: 9px 12px;
-  border-bottom: 1px solid var(--nr-line);
+  padding: 12px 14px 10px;
 }
 
-.nr-toc-search .nr-input {
-  height: 31px;
-  padding-left: 29px;
-  font-size: 11px;
-}
-
-.nr-search-wrap {
+.nr-toc-search .nr-search-wrap {
   position: relative;
 }
 
-.nr-search-wrap .nr-icon {
+.nr-toc-search .nr-search-wrap .nr-icon {
   position: absolute;
-  top: 8px;
-  left: 9px;
+  top: 50%;
+  left: 11px;
+  z-index: 1;
   width: 14px;
   height: 14px;
+  transform: translateY(-50%);
   color: var(--nr-faint);
   pointer-events: none;
+}
+
+.nr-toc-search .nr-input {
+  height: 36px;
+  padding: 0 11px 0 33px;
+  border: 1px solid var(--nr-line);
+  border-radius: 8px;
+  background: var(--nr-paper);
+  font-size: 11.5px;
+}
+
+.nr-toc-search .nr-input:focus,
+.nr-toc-search .nr-input:focus-visible {
+  outline: none;
+  border-color: var(--nr-accent);
+  box-shadow: 0 0 0 3px var(--nr-accent-wash);
 }
 
 .nr-toc-list {
@@ -2721,24 +2868,26 @@ export const styles = String.raw`
   overflow-y: auto;
   list-style: none;
   margin: 0;
-  padding: 4px 0 18px;
+  padding: 6px 8px 18px;
 }
 
 .nr-toc-row {
   appearance: none;
   display: flex;
-  align-items: baseline;
-  gap: 9px;
+  align-items: center;
+  gap: 10px;
   width: 100%;
-  padding: 8px 14px 8px 12px;
+  padding: 8px 10px;
   border: 0;
-  border-left: 2px solid transparent;
+  border-radius: 7px;
   background: transparent;
   color: var(--nr-soft);
   cursor: pointer;
   text-align: left;
-  font-size: 11.5px;
-  line-height: 1.5;
+  font-family: var(--nr-sans);
+  font-size: 12px;
+  line-height: 1.45;
+  transition: color 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
 }
 
 .nr-toc-row:hover {
@@ -2747,22 +2896,36 @@ export const styles = String.raw`
 }
 
 .nr-toc-row.active {
-  border-left-color: var(--nr-accent);
   background: var(--nr-accent-wash);
   color: var(--nr-ink);
   font-weight: 600;
 }
 
+.nr-toc-row.active::after {
+  content: "";
+  flex: none;
+  width: 5px;
+  height: 5px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--nr-accent);
+}
+
 .nr-toc-index {
   flex: none;
-  width: 23px;
+  width: 28px;
   color: var(--nr-faint);
   font-size: 9px;
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
 
+.nr-toc-row.active .nr-toc-index {
+  color: var(--nr-accent);
+}
+
 .nr-toc-name {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2770,11 +2933,13 @@ export const styles = String.raw`
 }
 
 .nr-toc-empty {
-  padding: 30px 20px;
+  padding: 32px 20px;
   color: var(--nr-faint);
+  font-family: var(--nr-sans);
   font-size: 11px;
   text-align: center;
 }
+
 
 @container (min-width: 680px) {
   .nr-shelf-head {
@@ -2803,15 +2968,15 @@ export const styles = String.raw`
   }
 
   .nr-shelf-grid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 18px 16px;
   }
 
   .nr-shelf-stage {
     width: 100%;
     max-width: 1300px;
     margin: 0 auto;
-    gap: 34px;
+    gap: 20px;
   }
 
   .nr-featured-aside {
@@ -3073,8 +3238,8 @@ export const styles = String.raw`
   }
 
   .nr-reader-topbar {
-    min-height: 56px;
-    padding: 8px 24px 7px 18px;
+    min-height: 50px;
+    padding: 7px 24px 6px 18px;
   }
 
   .nr-reader-book {
@@ -3086,30 +3251,34 @@ export const styles = String.raw`
   }
 
   .nr-reader-scroll {
-    padding: 48px 36px 64px;
+    padding: 28px 36px 104px;
   }
 
   .nr-article {
-    max-width: 720px;
+    max-width: 900px;
   }
 
   .nr-chapter-position {
-    margin-bottom: 10px;
+    margin-bottom: 6px;
     font-size: 10.5px;
   }
 
   .nr-chapter-title {
-    margin-bottom: 26px;
-    padding-bottom: 18px;
-    font-size: 1.35em;
+    margin-bottom: 20px;
+    padding-bottom: 13px;
+    font-size: 1.28em;
+    line-height: 1.5;
   }
 
   .nr-reader-nav {
-    padding: 10px max(26px, calc((100% - 720px) / 2)) 12px;
+    right: 24px;
+    bottom: 18px;
+    padding: 6px;
   }
 
   .nr-nav-button {
     height: 36px;
+    padding: 0 14px;
     font-size: 12px;
   }
 
@@ -3119,28 +3288,6 @@ export const styles = String.raw`
     width: 348px;
   }
 
-  .nr-toc-head {
-    min-height: 66px;
-    padding: 12px 24px;
-  }
-
-  .nr-toc-search {
-    padding: 12px max(26px, calc((100% - 760px) / 2));
-  }
-
-  .nr-toc-list {
-    padding: 8px max(24px, calc((100% - 760px) / 2)) 40px;
-  }
-
-  .nr-toc-row {
-    padding: 10px 16px;
-    font-size: 13px;
-  }
-
-  .nr-toc-index {
-    width: 28px;
-    font-size: 9.5px;
-  }
 }
 
 @container (min-width: 900px) {
@@ -3227,6 +3374,10 @@ export const styles = String.raw`
 }
 
 @container (max-width: 680px) {
+  .nr-body {
+    padding: 18px 16px 48px;
+  }
+
   .nr-settings-title {
     font-size: 26px;
   }
@@ -3297,35 +3448,45 @@ export const styles = String.raw`
 
 @container (max-width: 520px) {
   .nr-shelf-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
   }
 
   .nr-shelf-card {
-    padding: 8px;
+    aspect-ratio: auto;
+    padding: 9px;
   }
 
   .nr-shelf-cover {
-    width: 44px;
-    height: 66px;
+    width: 74px;
+  }
+
+  .nr-shelf-card-copy {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .nr-shelf-progress {
+    margin-top: 8px;
   }
 
   .nr-shelf-card-title {
-    font-size: 12px;
+    font-size: 15px;
   }
 
   .nr-shelf-card-author {
-    font-size: 9px;
+    font-size: 10.5px;
   }
 
-  .nr-shelf-progress-label {
-    font-size: 8px;
+  .nr-shelf-progress-label,
+  .nr-shelf-progress-value {
+    font-size: 9px;
   }
 }
 
 @container (max-width: 310px) {
   .nr-shelf-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
   }
 
@@ -3365,6 +3526,8 @@ export const styles = String.raw`
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+
 
 @media (hover: none) {
   .nr-row-action {

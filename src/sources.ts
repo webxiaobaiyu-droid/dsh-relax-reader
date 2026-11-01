@@ -11,6 +11,7 @@
  * timeout, size, and charset policy in one place.
  */
 import { JSDOM } from 'jsdom'
+import { pinyin } from 'pinyin-pro'
 import { FetchError } from './errors.ts'
 import { fetchPageWithRetry } from './fetcher.ts'
 import { canonicalUrl, chapterId } from './parser.ts'
@@ -47,6 +48,7 @@ export function cleanDescription(value: string): string {
     .replace(/^简\s*介\s*[:：]\s*/, '')
     .replace(/作者[:：].{0,40}所写的[^。]{0,80}(?:转载作品|章节由网友发布)[。.]?/g, '')
     .replace(/无弹窗推荐地址[:：]?\s*\S*/g, '')
+    .replace(/^136书屋为您提供[\s\S]*?版权属于作者[:：][^,，。]*[，,。]?(?:您也可以[^。]*[。.]?)?/u, '')
     .trim()
 }
 
@@ -292,7 +294,17 @@ export function parseTocPage(source: HtmlSource, html: string, pageUrl: string):
   const body = document.body ?? document.documentElement
   let links: Element[] = []
   try {
-    links = [...body.querySelectorAll(source.toc.list)]
+    if (source.id === '136book') {
+      // The page puts the latest block before the first-chapter block.
+      // Read the first block first, then the latest block, so previews start
+      // at chapter one instead of the final chapter.
+      const blocks = [...body.querySelectorAll('#book_detail ol')]
+      links = blocks.length > 1
+        ? [...blocks[blocks.length - 1]!.querySelectorAll('a'), ...blocks[0]!.querySelectorAll('a')]
+        : [...body.querySelectorAll(source.toc.list)]
+    } else {
+      links = [...body.querySelectorAll(source.toc.list)]
+    }
   } catch {
     return []
   }
@@ -300,6 +312,8 @@ export function parseTocPage(source: HtmlSource, html: string, pageUrl: string):
     const title = cleanText(source.toc.title === undefined ? link.textContent ?? '' : read(link, source.toc.title))
     const url = resolveUrl(pageUrl, source.toc.url === 'href' ? link.getAttribute('href') ?? '' : read(link, source.toc.url))
     if (title === '' || url === undefined || SKIP_TOC_TEXT.test(title)) return undefined
+    // 136book mixes another title's bonus chapters into its first block.
+    if (source.id === '136book' && !/^(?:第|序|引子|楔子|前言|后记|番外|正文)/u.test(title)) return undefined
     return { title, url }
   })
   // Templates often repeat the newest dozen chapters above the full catalog.
@@ -511,6 +525,47 @@ export const SOURCES: readonly HtmlSource[] = [
       return undefined
     },
   },
+  {
+    id: '136book',
+    name: '136书屋',
+    hosts: ['www.136book.com', '136book.com'],
+    search: {
+      // 136book exposes an author-only form; title lookup is handled below by
+      // its pinyin URL slug (e.g. /douluodalu/).
+      url: query => `https://www.136book.com/search.php?searchtype=author&keyword=${encodeURIComponent(query)}`,
+      item: 'table[width="95%"]',
+      title: 'p strong a',
+      author: 'p',
+      link: 'p strong a@href',
+      intro: 'td:last-child p:last-child',
+      cover: 'img.pic1@src',
+    },
+    book: {
+      title: 'h1',
+      author: '.entry-title a',
+      intro: '.entry-content',
+      cover: 'img.book_thumb@src',
+      tocUrl: '',
+    },
+    toc: { list: '#book_detail ol a', url: 'href' },
+    chapter: { content: '#content', remove: ['#content a'] },
+    tocFor: bookUrl => bookUrl,
+    resolve: (url) => {
+      const parts = url.pathname.split('/').filter(Boolean)
+      if (parts.length === 1) {
+        return { kind: 'book', bookUrl: `https://www.136book.com/${parts[0]}/` }
+      }
+      if (parts.length === 2) {
+        return {
+          kind: 'chapter',
+          bookUrl: `https://www.136book.com/${parts[0]}/`,
+          chapterUrl: `https://www.136book.com/${parts[0]}/${parts[1]}/`,
+        }
+      }
+      return undefined
+    },
+    noise: [/一秒记住|最新网址|请记住本站|加入书签|推荐阅读|136书屋提示/],
+  },
 ]
 
 /** Find the adapter that owns a pasted URL. */
@@ -612,12 +667,51 @@ export async function loadSourcePreview(
   }
 }
 
+/** Resolve a 136book title to the site's pinyin URL slug. */
+function bookSlug(query: string): string {
+  return pinyin(query, { toneType: 'none', type: 'array' })
+    .join('')
+    .replace(/[^a-z0-9]/gi, '')
+    .toLowerCase()
+}
+
+/** 136book has no working title-search endpoint; probe its pinyin slug. */
+async function search136book(
+  source: HtmlSource,
+  query: string,
+  signal: AbortSignal,
+): Promise<SourceSearchHit[]> {
+  const slug = bookSlug(query)
+  if (slug === '') return []
+  const url = `https://www.136book.com/${slug}/`
+  try {
+    const page = await fetchPageWithRetry(url, signal)
+    if (!page.html.includes('id="book_detail"')) return []
+    const meta = parseBook(source, page.html, page.finalUrl)
+    if (meta.title === '未命名书籍') return []
+    return [{
+      id: url,
+      title: meta.title,
+      author: meta.author,
+      intro: meta.description ?? '',
+      url,
+      ...meta.coverUrl === undefined ? {} : { coverUrl: meta.coverUrl },
+      sourceId: source.id,
+      sourceName: source.name,
+    }]
+  } catch (error: unknown) {
+    if (signal.aborted) throw error
+    return []
+  }
+}
+
 /** Fetch one source's search page and normalize its rows. */
 export async function searchSource(
   source: HtmlSource,
   query: string,
   signal: AbortSignal,
 ): Promise<SourceSearchHit[]> {
+  if (source.id === '136book') return search136book(source, query, signal)
   const page = await fetchPageWithRetry(source.search.url(query), signal)
   return parseSearchPage(source, page.html, page.finalUrl)
 }

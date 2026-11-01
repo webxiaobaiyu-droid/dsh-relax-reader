@@ -221,6 +221,15 @@ export class ReaderStore {
   /** All books, most recently updated first. */
   async listBooks(): Promise<Book[]> {
     const data = await this.load()
+    let repaired = false
+    for (const book of data.books) {
+      if (book.lastChapterIndex !== undefined || book.lastChapterId === undefined) continue
+      const index = data.toc[book.id]?.findIndex(chapter => chapter.id === book.lastChapterId) ?? -1
+      if (index < 0) continue
+      book.lastChapterIndex = index
+      repaired = true
+    }
+    if (repaired) await this.persist().catch(() => {})
     return clone([...data.books].sort((left, right) => right.updatedAt - left.updatedAt))
   }
 
